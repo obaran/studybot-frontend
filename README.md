@@ -1,47 +1,69 @@
-# 🎨 StudyBot Frontend
+# React + TypeScript + Vite
 
-**Interface utilisateur React pour la plateforme StudyBot**
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## 🎯 Description
+Currently, two official plugins are available:
 
-Module frontend de la plateforme StudyBot développée pour emlyon business school. Comprend :
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-- **Widget Chatbot Embeddable** - Reproduit et améliore le design Flowise existant
-- **Interface d'Administration** - Dashboard pour gérer les chatbots, prompts et analytics
-- **Système Responsive** - Compatible mobile et desktop
-- **Thèmes Personnalisables** - Configuration visuelle complète
+## Expanding the ESLint configuration
 
-## 🛠️ Technologies
+If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
 
-- **React** 18+ avec TypeScript
-- **Styled Components** pour le styling
-- **React Router** pour la navigation
-- **Axios** pour les appels API
-- **Recharts** pour les graphiques analytics
+```js
+export default tseslint.config([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
 
-## 🎨 Design
+      // Remove tseslint.configs.recommended and replace with this
+      ...tseslint.configs.recommendedTypeChecked,
+      // Alternatively, use this for stricter rules
+      ...tseslint.configs.strictTypeChecked,
+      // Optionally, add this for stylistic rules
+      ...tseslint.configs.stylisticTypeChecked,
 
-Reproduction fidèle du design Flowise actuel :
-- **Couleurs emlyon :** `#d4a94e` (doré), `#f7f8ff` (gris clair)
-- **Responsive :** Hauteur adaptative selon écran (85% si ≤700px)
-- **Fonctionnalités :** Drag & drop, feedbacks, sons notifications
-
-## 🚀 Installation
-
-```bash
-npm install
-npm run dev
+      // Other configs...
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
 ```
 
-## 📋 Développement
+You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-Voir [FRONTEND_TRACKING.md](./FRONTEND_TRACKING.md) pour le suivi détaillé des tâches.
+```js
+// eslint.config.js
+import reactX from 'eslint-plugin-react-x'
+import reactDom from 'eslint-plugin-react-dom'
 
-## 🔗 Repositories Liés
-
-- **Backend :** [studybot-backend](https://github.com/obaran/studybot-backend)
-- **Docker :** [studybot-docker](https://github.com/obaran/studybot-docker)
-
----
-
-**Développé avec ❤️ pour emlyon business school** 
+export default tseslint.config([
+  globalIgnores(['dist']),
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [
+      // Other configs...
+      // Enable lint rules for React
+      reactX.configs['recommended-typescript'],
+      // Enable lint rules for React DOM
+      reactDom.configs.recommended,
+    ],
+    languageOptions: {
+      parserOptions: {
+        project: ['./tsconfig.node.json', './tsconfig.app.json'],
+        tsconfigRootDir: import.meta.dirname,
+      },
+      // other options...
+    },
+  },
+])
+```
