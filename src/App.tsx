@@ -281,10 +281,10 @@ const App: React.FC = () => {
       try {
         return JSON.parse(saved);
       } catch {
-        return { x: window.innerWidth - 72, y: window.innerHeight - 72 };
+        return { x: window.innerWidth - 68, y: window.innerHeight - 68 };
       }
     }
-    return { x: window.innerWidth - 72, y: window.innerHeight - 72 };
+    return { x: window.innerWidth - 68, y: window.innerHeight - 68 };
   });
   
   const [isDragging, setIsDragging] = useState(false);
@@ -295,7 +295,7 @@ const App: React.FC = () => {
 
   // 🖱️ Contraindre position dans les limites de l'écran
   const constrainPosition = useCallback((pos: { x: number; y: number }) => {
-    const buttonSize = 52;
+    const buttonSize = 48;
     const margin = 20;
     
     return {
@@ -774,8 +774,8 @@ const App: React.FC = () => {
           onTouchStart={handleTouchStart}
           onClick={handleButtonClick}
           style={{
-            width: '52px',
-            height: '52px',
+            width: '48px',
+            height: '48px',
             background: 'none',
             border: 'none',
             cursor: isDragging ? 'grabbing' : 'grab',
@@ -825,8 +825,8 @@ const App: React.FC = () => {
               src={EMLYON_ASSETS.buttonIcon}
               alt="Chat"
               style={{
-                width: '52px',
-                height: '52px',
+                width: '48px',
+                height: '48px',
                 objectFit: 'contain',
                 pointerEvents: 'none',
                 borderRadius: '50%'
@@ -942,8 +942,8 @@ const App: React.FC = () => {
               }}
               style={{
                 position: 'absolute',
-                bottom: buttonPosition.y > window.innerHeight / 2 ? '58px' : 'auto',
-                top: buttonPosition.y <= window.innerHeight / 2 ? '58px' : 'auto',
+                bottom: buttonPosition.y > window.innerHeight / 2 ? '54px' : 'auto',
+                top: buttonPosition.y <= window.innerHeight / 2 ? '54px' : 'auto',
                 right: buttonPosition.x > window.innerWidth / 2 ? '0' : 'auto',
                 left: buttonPosition.x <= window.innerWidth / 2 ? '0' : 'auto',
                 width: window.innerWidth <= 700 ? '100vw' : '400px',
