@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
+import StudyBotAPI, { type ChatRequest } from './services/api';
+import TypewriterText from './components/TypewriterText';
 
 // 🎯 Assets emlyon officiels (depuis flowise-design-reference.js)
 const EMLYON_ASSETS = {
@@ -212,6 +214,7 @@ const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
+  const [typewritingMessageId, setTypewritingMessageId] = useState<number | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackMessageId, setFeedbackMessageId] = useState<number | null>(null);
   const [feedbackComment, setFeedbackComment] = useState('');
@@ -238,16 +241,26 @@ const App: React.FC = () => {
         behavior: smooth ? 'smooth' : 'auto',
         block: 'end'
       });
+      
+      // Double appel pour s'assurer du scroll même avec du contenu dynamique
+      if (smooth) {
+        setTimeout(() => {
+          messagesEndRef.current?.scrollIntoView({
+            behavior: 'smooth',
+            block: 'end'
+          });
+        }, 100);
+      }
     }
   }, []);
 
   // 📜 Effect pour auto-scroll sur nouveaux messages
   useEffect(() => {
     if (isOpen) {
-      // Petit délai pour laisser le temps au DOM de se mettre à jour
+      // Délai réduit pour un scroll plus réactif
       setTimeout(() => {
         scrollToBottom();
-      }, 100);
+      }, 50);
     }
   }, [messages, showTyping, isOpen, scrollToBottom]);
 
@@ -268,10 +281,10 @@ const App: React.FC = () => {
       try {
         return JSON.parse(saved);
       } catch {
-        return { x: window.innerWidth - 68, y: window.innerHeight - 68 };
+        return { x: window.innerWidth - 72, y: window.innerHeight - 72 };
       }
     }
-    return { x: window.innerWidth - 68, y: window.innerHeight - 68 };
+    return { x: window.innerWidth - 72, y: window.innerHeight - 72 };
   });
   
   const [isDragging, setIsDragging] = useState(false);
@@ -282,7 +295,7 @@ const App: React.FC = () => {
 
   // 🖱️ Contraindre position dans les limites de l'écran
   const constrainPosition = useCallback((pos: { x: number; y: number }) => {
-    const buttonSize = 48;
+    const buttonSize = 52;
     const margin = 20;
     
     return {
@@ -421,18 +434,12 @@ const App: React.FC = () => {
     // Son d'ouverture/fermeture
     if (!isOpen) {
       playNotificationSound();
-      // Démonstration typing indicator
-      setTimeout(() => {
-        setShowTyping(true);
-        setTimeout(() => {
-          setShowTyping(false);
-        }, 2500);
-      }, 1000);
+      // Ne plus afficher l'indicateur typing automatiquement à l'ouverture
     }
   };
 
-  // 📤 Fonction d'envoi de message
-  const handleSendMessage = useCallback(() => {
+  // 📤 Fonction d'envoi de message avec API
+  const handleSendMessage = useCallback(async () => {
     if (!inputValue.trim()) return;
 
     const userMessage: UserMessage = {
@@ -443,39 +450,91 @@ const App: React.FC = () => {
 
     // Ajouter message utilisateur
     setMessages(prev => [...prev, userMessage]);
+    const messageText = inputValue.trim();
     setInputValue('');
     
     // Son d'envoi
     playSendSound();
     
-    // Simulation réponse bot
-    setTimeout(() => {
-      setShowTyping(true);
+    // Afficher typing indicator immédiatement
+    setShowTyping(true);
+
+    // Protection : désactiver automatiquement après 30 secondes
+    const typingTimeout = setTimeout(() => {
+      setShowTyping(false);
+    }, 30000);
+
+    try {
+      // Préparer la requête API
+      const chatRequest: ChatRequest = {
+        message: messageText,
+        chatbot: 'studybot', // ou 'bibliobot' selon le contexte
+        sessionId: undefined // Le backend générera un sessionId
+      };
+
+      // Choisir l'endpoint selon le mode configuré
+      const chatMode = import.meta.env.VITE_CHAT_MODE || 'mock';
       
-      setTimeout(() => {
-        const botResponses = [
-          "Merci pour votre question ! Je peux vous aider avec les démarches administratives d'emlyon.",
-          "Pour les inscriptions, vous pouvez consulter notre guide en ligne ou contacter le service des admissions.",
-          "Excellente question ! Nos équipes sont là pour vous accompagner dans vos études à emlyon.",
-          "Je vous invite à consulter votre espace étudiant ou à contacter votre conseiller pédagogique.",
-          "N'hésitez pas à prendre rendez-vous avec nos services pour un accompagnement personnalisé !"
-        ];
-        
-        const botMessage: BotMessage = {
-          id: Date.now() + 1,
-          type: 'bot',
-          content: botResponses[Math.floor(Math.random() * botResponses.length)],
-          feedback: null
-        };
-        
-        setMessages(prev => [...prev, botMessage]);
-        setShowTyping(false);
-        
-        // Son de réception
-        playReceiveSound();
-      }, 2000);
-    }, 500);
-  }, [inputValue, playSendSound, playReceiveSound]);
+      const apiResponse = chatMode === 'production' 
+        ? await StudyBotAPI.sendMessage(chatRequest)
+        : await StudyBotAPI.sendMessageMock(chatRequest);
+
+      // Désactiver l'indicateur typing AVANT de traiter la réponse
+      clearTimeout(typingTimeout);
+      setShowTyping(false);
+      
+      // Créer le message bot avec la réponse API
+      const botMessage: BotMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: apiResponse.response,
+        feedback: null
+      };
+      
+      setMessages(prev => [...prev, botMessage]);
+      
+      // Déclencher l'effet typewriter pour ce message
+      setTypewritingMessageId(botMessage.id);
+      
+      // Son de réception
+      playReceiveSound();
+
+      // Logger les métadonnées pour le debug
+      if (import.meta.env.VITE_DEBUG_API === 'true') {
+        console.log('📊 Chat Response:', {
+          sessionId: apiResponse.sessionId,
+          messageId: apiResponse.messageId,
+          tokensUsed: apiResponse.tokensUsed,
+          model: apiResponse.model,
+          responseTime: apiResponse.responseTime,
+          sources: apiResponse.sources
+        });
+      }
+
+    } catch (error) {
+      console.error('❌ Erreur lors de l\'envoi du message:', error);
+      
+      // Toujours désactiver l'indicateur typing en cas d'erreur
+      clearTimeout(typingTimeout);
+      setShowTyping(false);
+      
+      // Message d'erreur pour l'utilisateur
+      const errorMessage: BotMessage = {
+        id: Date.now() + 1,
+        type: 'bot',
+        content: `🚨 Désolé, je rencontre un problème technique. ${error instanceof Error ? error.message : 'Erreur inconnue'}. Veuillez réessayer dans quelques instants.`,
+        feedback: null
+      };
+      
+      setMessages(prev => [...prev, errorMessage]);
+      
+      // Déclencher l'effet typewriter pour le message d'erreur aussi
+      setTypewritingMessageId(errorMessage.id);
+      
+      // Son d'erreur (plus grave) - utiliser playNotificationSound disponible
+      playNotificationSound();
+    }
+  }, [inputValue, playSendSound, playReceiveSound, playNotificationSound]);
 
   // ⌨️ Gestionnaire touche Entrée
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -715,17 +774,14 @@ const App: React.FC = () => {
           onTouchStart={handleTouchStart}
           onClick={handleButtonClick}
           style={{
-            width: '48px',
-            height: '48px',
-            background: 'linear-gradient(135deg, #d4a94e 0%, #e6b85c 100%)',
+            width: '52px',
+            height: '52px',
+            background: 'none',
             border: 'none',
-            borderRadius: '50%',
             cursor: isDragging ? 'grabbing' : 'grab',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white',
-            fontSize: '24px',
             position: 'relative',
             userSelect: 'none',
             touchAction: 'none'
@@ -742,18 +798,38 @@ const App: React.FC = () => {
           }}
           title="Hi There 👋! (Framer Motion enabled)"
         >
-          {/* Icône SVG officielle ou fallback */}
+          {/* Logo emlyon complet (déjà une bulle) */}
           {isOpen ? (
-            '✕'
+            <div style={{
+              width: '40px',
+              height: '40px',
+              minWidth: '40px',
+              minHeight: '40px',
+              maxWidth: '40px',
+              maxHeight: '40px',
+              background: 'linear-gradient(135deg, #d4a94e 0%, #e6b85c 100%)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              boxSizing: 'border-box',
+              flexShrink: 0
+            }}>
+              ✕
+            </div>
           ) : (
             <img
               src={EMLYON_ASSETS.buttonIcon}
               alt="Chat"
               style={{
-                width: '28px',
-                height: '28px',
+                width: '52px',
+                height: '52px',
                 objectFit: 'contain',
-                pointerEvents: 'none'
+                pointerEvents: 'none',
+                borderRadius: '50%'
               }}
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -866,8 +942,8 @@ const App: React.FC = () => {
               }}
               style={{
                 position: 'absolute',
-                bottom: buttonPosition.y > window.innerHeight / 2 ? '60px' : 'auto',
-                top: buttonPosition.y <= window.innerHeight / 2 ? '60px' : 'auto',
+                bottom: buttonPosition.y > window.innerHeight / 2 ? '58px' : 'auto',
+                top: buttonPosition.y <= window.innerHeight / 2 ? '58px' : 'auto',
                 right: buttonPosition.x > window.innerWidth / 2 ? '0' : 'auto',
                 left: buttonPosition.x <= window.innerWidth / 2 ? '0' : 'auto',
                 width: window.innerWidth <= 700 ? '100vw' : '400px',
@@ -1066,8 +1142,20 @@ const App: React.FC = () => {
                         </div>
                       )}
                       
-                      <div style={{ flex: 1 }}>
-                        {message.content}
+                      <div style={{ 
+                        flex: 1,
+                        whiteSpace: 'pre-line', // Préserver les retours à la ligne
+                        textAlign: 'left' // Alignement à gauche pour une lecture normale
+                      }}>
+                        {message.type === 'bot' && message.id === typewritingMessageId ? (
+                          <TypewriterText 
+                            text={message.content} 
+                            speed={6}
+                            onComplete={() => setTypewritingMessageId(null)}
+                          />
+                        ) : (
+                          message.content
+                        )}
                       </div>
                       
                       {message.type === 'user' && (
