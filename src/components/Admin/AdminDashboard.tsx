@@ -174,6 +174,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [feedbackFilter, setFeedbackFilter] = React.useState('all'); // 'all', 'positive', 'negative'
   const [selectedDate, setSelectedDate] = React.useState(''); // Date sélectionnée au format YYYY-MM-DD
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false); // État du calendrier popup
+  const [showAddUserModal, setShowAddUserModal] = React.useState(false); // Modal d'ajout d'utilisateur
+  const [showPermissionsModal, setShowPermissionsModal] = React.useState(false); // Modal de permissions
+  const [selectedUser, setSelectedUser] = React.useState<any>(null); // Utilisateur sélectionné pour édition
 
   // Générer les dates pour le calendrier (janvier 2025)
   const generateCalendarDates = () => {
@@ -2408,6 +2411,664 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
           </>
         )}
 
+        {/* Section Configuration */}
+        {activeSection === 'config' && (
+          <>
+            {/* Configuration Message de Bienvenue */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '32px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                marginBottom: '32px'
+              }}
+            >
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                💬 Messages et Textes
+              </h3>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '24px'
+              }}>
+                {/* Message de Bienvenue */}
+                <div>
+                  <label style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#64748b',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Message de Bienvenue
+                  </label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      height: '120px',
+                      padding: '16px',
+                      borderRadius: '8px',
+                      border: '2px solid #e2e8f0',
+                      fontSize: '14px',
+                      fontFamily: 'Inter, sans-serif',
+                      resize: 'vertical',
+                      outline: 'none',
+                      transition: 'border-color 0.3s ease'
+                    }}
+                    defaultValue="👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd'hui ?"
+                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
+                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                    placeholder="Entrez votre message de bienvenue..."
+                  />
+                  
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: '12px'
+                  }}>
+                    <span style={{
+                      fontSize: '12px',
+                      color: '#64748b'
+                    }}>
+                      Délai d'affichage : 2 secondes
+                    </span>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        padding: '8px 16px',
+                        background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      💾 Sauvegarder
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Message Footer Widget */}
+                <div>
+                  <label style={{
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    color: '#64748b',
+                    marginBottom: '8px',
+                    display: 'block'
+                  }}>
+                    Message Footer Widget
+                  </label>
+                  
+                  {/* Texte affiché */}
+                  <input
+                    type="text"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '2px solid #e2e8f0',
+                      fontSize: '14px',
+                      outline: 'none',
+                      marginBottom: '12px',
+                      transition: 'border-color 0.3s ease'
+                    }}
+                    defaultValue="Powered by emlyon business school"
+                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
+                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                    placeholder="Texte affiché dans le footer"
+                  />
+
+                  {/* Lien (optionnel) */}
+                  <input
+                    type="url"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '2px solid #e2e8f0',
+                      fontSize: '14px',
+                      outline: 'none',
+                      marginBottom: '12px',
+                      transition: 'border-color 0.3s ease'
+                    }}
+                    defaultValue="https://emlyon.com"
+                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
+                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                    placeholder="Lien de redirection (optionnel)"
+                  />
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    💾 Mettre à jour
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Configuration Logos */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '32px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                marginBottom: '32px'
+              }}
+            >
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                🎨 Logos et Avatars
+              </h3>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gap: '24px'
+              }}>
+                {/* Logo Bot */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center'
+                }}>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    margin: '0 0 16px 0'
+                  }}>
+                    Logo Bot
+                  </h4>
+                  
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    border: '2px dashed #e2e8f0',
+                    margin: '0 auto 16px auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    color: '#e2001a'
+                  }}>
+                    🤖
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      padding: '12px 20px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📁 Choisir un fichier
+                  </motion.button>
+                </div>
+
+                {/* Logo User */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid #e2e8f0',
+                  textAlign: 'center'
+                }}>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    margin: '0 0 16px 0'
+                  }}>
+                    Logo User
+                  </h4>
+                  
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    background: 'white',
+                    borderRadius: '50%',
+                    border: '2px dashed #e2e8f0',
+                    margin: '0 auto 16px auto',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    color: '#e2001a'
+                  }}>
+                    👤
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      padding: '12px 20px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    📁 Choisir un fichier
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Génération de liens et intégrations - EN BAS */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '32px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 24px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                🔗 Génération de Liens et Intégrations
+              </h3>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+                gap: '24px'
+              }}>
+                {/* Lien Direct */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    margin: '0 0 16px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    🌐 Lien Direct
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#e2001a',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: '500'
+                    }}>
+                      UNIQUE
+                    </span>
+                  </h4>
+                  
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '12px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace',
+                    color: '#1e293b',
+                    wordBreak: 'break-all'
+                  }}>
+                    https://studybot.emlyon.com/chat?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        navigator.clipboard.writeText('https://studybot.emlyon.com/chat?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
+                        // Ici on pourrait ajouter une notification de succès
+                      }}
+                    >
+                      📋 Copier le Lien
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        padding: '12px 16px',
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      🔄 Regénérer
+                    </motion.button>
+                  </div>
+                </div>
+
+                {/* Code Iframe */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    margin: '0 0 16px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    🖼️ Code Iframe
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#3b82f6',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: '500'
+                    }}>
+                      SIMPLE
+                    </span>
+                  </h4>
+                  
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '8px',
+                    padding: '12px',
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '12px',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    color: '#1e293b',
+                    lineHeight: '1.5'
+                  }}>
+                    {`<iframe
+  src="https://studybot.emlyon.com/embed"
+  width="100%"
+  height="600"
+  frameborder="0"
+  allow="microphone">
+</iframe>`}
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => {
+                      navigator.clipboard.writeText(`<iframe src="https://studybot.emlyon.com/embed" width="100%" height="600" frameborder="0" allow="microphone"></iframe>`);
+                    }}
+                  >
+                    📋 Copier le Code Iframe
+                  </motion.button>
+                </div>
+
+                {/* Code Embed Complet */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid #e2e8f0',
+                  gridColumn: '1 / -1' // Prend toute la largeur
+                }}>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#1e293b',
+                    margin: '0 0 16px 0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    ⚡ Code Embed Complet
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#059669',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: '500'
+                    }}>
+                      AVANCÉ
+                    </span>
+                  </h4>
+                  
+                  <div style={{
+                    background: 'white',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    marginBottom: '12px',
+                    fontSize: '12px',
+                    fontFamily: 'monospace',
+                    color: '#1e293b',
+                    lineHeight: '1.5',
+                    maxHeight: '200px',
+                    overflowY: 'auto'
+                  }}>
+                    {`<!-- StudyBot emlyon - Code d'intégration complet -->
+<div id="studybot-container"></div>
+<script>
+(function() {
+  // Configuration StudyBot
+  window.StudyBotConfig = {
+    apiUrl: 'https://studybot.emlyon.com',
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+    theme: {
+      primaryColor: '#e2001a',
+      position: 'bottom-right',
+      language: 'fr'
+    },
+    welcome: {
+      message: 'Bonjour ! Je suis StudyBot, votre assistant emlyon. Comment puis-je vous aider ?',
+      delay: 2000
+    }
+  };
+
+  // Chargement du widget
+  var script = document.createElement('script');
+  script.src = 'https://studybot.emlyon.com/widget.js';
+  script.async = true;
+  document.head.appendChild(script);
+})();
+</script>
+<!-- Fin StudyBot -->`}
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        flex: 1,
+                        padding: '12px 16px',
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => {
+                        const embedCode = `<!-- StudyBot emlyon - Code d'intégration complet -->
+<div id="studybot-container"></div>
+<script>
+(function() {
+  window.StudyBotConfig = {
+    apiUrl: 'https://studybot.emlyon.com',
+    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+    theme: { primaryColor: '#e2001a', position: 'bottom-right', language: 'fr' },
+    welcome: { message: 'Bonjour ! Je suis StudyBot, votre assistant emlyon.', delay: 2000 }
+  };
+  var script = document.createElement('script');
+  script.src = 'https://studybot.emlyon.com/widget.js';
+  script.async = true;
+  document.head.appendChild(script);
+})();
+</script>`;
+                        navigator.clipboard.writeText(embedCode);
+                      }}
+                    >
+                      📋 Copier le Code Embed
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      style={{
+                        padding: '12px 24px',
+                        background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ⚙️ Personnaliser
+                    </motion.button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Instructions d'utilisation */}
+              <div style={{
+                marginTop: '24px',
+                padding: '20px',
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                borderRadius: '12px',
+                border: '1px solid #f59e0b'
+              }}>
+                <h5 style={{
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#92400e',
+                  margin: '0 0 12px 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  💡 Instructions pour les Services Externes
+                </h5>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#78350f',
+                  lineHeight: '1.6'
+                }}>
+                  <p style={{ margin: '0 0 8px 0' }}>
+                    <strong>Lien Direct :</strong> À partager aux équipes pour accès direct au chatbot
+                  </p>
+                  <p style={{ margin: '0 0 8px 0' }}>
+                    <strong>Code Iframe :</strong> Pour intégration simple dans une page web existante
+                  </p>
+                  <p style={{ margin: '0' }}>
+                    <strong>Code Embed :</strong> Pour intégration complète avec widget flottant personnalisable
+                  </p>
+                </div>
+              </div>
+            </motion.div>
+
+
+          </>
+        )}
+
         {/* Modal pour voir le prompt en grand */}
         {showPromptModal && (
           <motion.div
@@ -2615,6 +3276,709 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     </motion.button>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Section Utilisateurs */}
+        {activeSection === 'users' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            style={{
+              background: 'linear-gradient(135deg, rgba(255,255,255,0.95) 0%, rgba(248,250,252,0.95) 100%)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: '20px',
+              border: '1px solid rgba(226,232,240,0.2)',
+              padding: '32px',
+              boxShadow: '0 8px 32px rgba(15,23,42,0.08)'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
+              <div>
+                <h3 style={{ 
+                  fontSize: '24px', 
+                  fontWeight: '700', 
+                  color: '#1e293b',
+                  margin: '0 0 8px 0'
+                }}>
+                  👥 Gestion des Utilisateurs
+                </h3>
+                <p style={{ 
+                  color: '#64748b', 
+                  margin: 0,
+                  fontSize: '14px'
+                }}>
+                  Gérez les accès administrateur et les permissions des utilisateurs
+                </p>
+              </div>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => setShowAddUserModal(true)}
+                style={{
+                  padding: '12px 24px',
+                  background: 'linear-gradient(135deg, #e2001a 0%, #b71c1c 100%)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(226,0,26,0.3)'
+                }}
+              >
+                <span>➕</span>
+                Ajouter un admin
+              </motion.button>
+            </div>
+
+            {/* Statistiques des utilisateurs */}
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '20px',
+              marginBottom: '32px'
+            }}>
+              {[
+                { title: 'Admins Actifs', value: '3', icon: '👤', color: '#0ea5e9' },
+                { title: 'Admins en Attente', value: '1', icon: '⏳', color: '#f59e0b' },
+                { title: 'Permissions Spéciales', value: '2', icon: '🔐', color: '#8b5cf6' },
+                { title: 'Connexions Aujourd\'hui', value: '5', icon: '🚪', color: '#10b981' }
+              ].map((stat, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(248,250,252,0.9) 100%)',
+                    padding: '24px',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(226,232,240,0.3)',
+                    boxShadow: '0 4px 16px rgba(15,23,42,0.04)'
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div>
+                      <p style={{ 
+                        color: '#64748b', 
+                        fontSize: '12px', 
+                        fontWeight: '500',
+                        margin: '0 0 4px 0',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.5px'
+                      }}>
+                        {stat.title}
+                      </p>
+                      <h4 style={{ 
+                        fontSize: '28px', 
+                        fontWeight: '700', 
+                        color: '#1e293b',
+                        margin: 0
+                      }}>
+                        {stat.value}
+                      </h4>
+                    </div>
+                    <div style={{
+                      fontSize: '24px',
+                      background: `linear-gradient(135deg, ${stat.color}20 0%, ${stat.color}10 100%)`,
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      {stat.icon}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+
+            {/* Liste des administrateurs */}
+            <div style={{
+              background: 'rgba(255,255,255,0.7)',
+              borderRadius: '16px',
+              border: '1px solid rgba(226,232,240,0.3)',
+              overflow: 'hidden'
+            }}>
+              <div style={{
+                padding: '20px 24px',
+                borderBottom: '1px solid rgba(226,232,240,0.2)',
+                background: 'linear-gradient(90deg, rgba(226,0,26,0.05) 0%, rgba(226,0,26,0.02) 100%)'
+              }}>
+                <h4 style={{ 
+                  fontSize: '16px', 
+                  fontWeight: '600', 
+                  color: '#1e293b',
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span>📋</span>
+                  Liste des Administrateurs
+                </h4>
+              </div>
+
+              <div style={{ padding: '0' }}>
+                {[
+                  { 
+                    id: '1',
+                    name: 'Marie Dubois', 
+                    email: 'marie.dubois@emlyon.com',
+                    role: 'Super Admin',
+                    status: 'active',
+                    lastLogin: '2025-01-15 14:30',
+                    permissions: ['all']
+                  },
+                  { 
+                    id: '2',
+                    name: 'Pierre Martin', 
+                    email: 'pierre.martin@emlyon.com',
+                    role: 'Admin',
+                    status: 'active',
+                    lastLogin: '2025-01-15 09:15',
+                    permissions: ['conversations', 'analytics']
+                  },
+                  { 
+                    id: '3',
+                    name: 'Sophie Laurent', 
+                    email: 'sophie.laurent@emlyon.com',
+                    role: 'Admin',
+                    status: 'active',
+                    lastLogin: '2025-01-14 16:45',
+                    permissions: ['conversations', 'configuration']
+                  },
+                  { 
+                    id: '4',
+                    name: 'Thomas Leclerc', 
+                    email: 'thomas.leclerc@emlyon.com',
+                    role: 'Admin',
+                    status: 'pending',
+                    lastLogin: 'Jamais connecté',
+                    permissions: ['conversations']
+                  }
+                ].map((user, index) => (
+                  <motion.div
+                    key={user.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    style={{
+                      padding: '20px 24px',
+                      borderBottom: index < 3 ? '1px solid rgba(226,232,240,0.1)' : 'none',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '50%',
+                        background: 'linear-gradient(135deg, #e2001a 0%, #b71c1c 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '18px',
+                        fontWeight: '600'
+                      }}>
+                        {user.name.split(' ').map(n => n[0]).join('')}
+                      </div>
+                      
+                      <div style={{ flex: 1 }}>
+                        <h5 style={{ 
+                          fontSize: '16px', 
+                          fontWeight: '600', 
+                          color: '#1e293b',
+                          margin: '0 0 4px 0'
+                        }}>
+                          {user.name}
+                        </h5>
+                        <p style={{ 
+                          fontSize: '14px', 
+                          color: '#64748b',
+                          margin: '0 0 4px 0'
+                        }}>
+                          {user.email}
+                        </p>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{
+                            background: user.status === 'active' ? 'rgba(34,197,94,0.1)' : 'rgba(251,191,36,0.1)',
+                            color: user.status === 'active' ? '#059669' : '#d97706',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}>
+                            {user.status === 'active' ? '🟢 Actif' : '🟡 En attente'}
+                          </span>
+                          <span style={{
+                            background: 'rgba(59,130,246,0.1)',
+                            color: '#2563eb',
+                            padding: '2px 8px',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                            fontWeight: '500'
+                          }}>
+                            {user.role}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div style={{ textAlign: 'right', minWidth: '120px' }}>
+                        <p style={{ 
+                          fontSize: '12px', 
+                          color: '#64748b',
+                          margin: '0 0 4px 0'
+                        }}>
+                          Dernière connexion
+                        </p>
+                        <p style={{ 
+                          fontSize: '14px', 
+                          color: '#1e293b',
+                          fontWeight: '500',
+                          margin: 0
+                        }}>
+                          {user.lastLogin}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowPermissionsModal(true);
+                        }}
+                        style={{
+                          padding: '8px',
+                          background: 'rgba(59,130,246,0.1)',
+                          color: '#2563eb',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                        title="Modifier les permissions"
+                      >
+                        ⚙️
+                      </motion.button>
+                      
+                      {user.status === 'pending' && (
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          style={{
+                            padding: '8px',
+                            background: 'rgba(34,197,94,0.1)',
+                            color: '#059669',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                          }}
+                          title="Activer le compte"
+                        >
+                          ✅
+                        </motion.button>
+                      )}
+                      
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        style={{
+                          padding: '8px',
+                          background: 'rgba(239,68,68,0.1)',
+                          color: '#dc2626',
+                          border: 'none',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                        title="Supprimer l'utilisateur"
+                      >
+                        🗑️
+                      </motion.button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Modal d'ajout d'utilisateur */}
+        {showAddUserModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(15,23,42,0.5)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }}
+            onClick={() => setShowAddUserModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '20px',
+                padding: '32px',
+                width: '90%',
+                maxWidth: '500px',
+                boxShadow: '0 25px 50px rgba(15,23,42,0.25)'
+              }}
+            >
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '700', 
+                  color: '#1e293b',
+                  margin: '0 0 8px 0'
+                }}>
+                  ➕ Ajouter un Administrateur
+                </h3>
+                <p style={{ 
+                  color: '#64748b', 
+                  margin: 0,
+                  fontSize: '14px'
+                }}>
+                  Invitez un nouvel utilisateur à rejoindre l'équipe administrative
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    Nom complet
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: Marie Dubois"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      background: 'rgba(249,250,251,0.5)'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    Adresse email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="Ex: marie.dubois@emlyon.com"
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'all 0.2s',
+                      background: 'rgba(249,250,251,0.5)'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '6px'
+                  }}>
+                    Rôle
+                  </label>
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      background: 'rgba(249,250,251,0.5)',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="admin">Admin</option>
+                    <option value="super-admin">Super Admin</option>
+                    <option value="moderator">Modérateur</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    fontSize: '14px', 
+                    fontWeight: '600', 
+                    color: '#374151',
+                    marginBottom: '12px'
+                  }}>
+                    Permissions
+                  </label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {[
+                      { id: 'conversations', label: 'Gestion des conversations', icon: '💬' },
+                      { id: 'analytics', label: 'Accès aux analytics', icon: '📊' },
+                      { id: 'configuration', label: 'Configuration système', icon: '⚙️' },
+                      { id: 'users', label: 'Gestion des utilisateurs', icon: '👥' }
+                    ].map(permission => (
+                      <label key={permission.id} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        cursor: 'pointer',
+                        padding: '8px',
+                        borderRadius: '8px',
+                        background: 'rgba(249,250,251,0.5)'
+                      }}>
+                        <input type="checkbox" defaultChecked={permission.id === 'conversations'} />
+                        <span style={{ fontSize: '14px' }}>{permission.icon}</span>
+                        <span style={{ fontSize: '14px', color: '#374151' }}>{permission.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                marginTop: '32px',
+                justifyContent: 'flex-end'
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowAddUserModal(false)}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#f1f5f9',
+                    color: '#64748b',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Annuler
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowAddUserModal(false);
+                    // Ici vous ajouteriez la logique pour envoyer l'invitation
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b71c1c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <span>📧</span>
+                  Envoyer l'invitation
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Modal de gestion des permissions */}
+        {showPermissionsModal && selectedUser && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              background: 'rgba(15,23,42,0.5)',
+              backdropFilter: 'blur(8px)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            }}
+            onClick={() => setShowPermissionsModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              onClick={e => e.stopPropagation()}
+              style={{
+                background: 'white',
+                borderRadius: '20px',
+                padding: '32px',
+                width: '90%',
+                maxWidth: '500px',
+                boxShadow: '0 25px 50px rgba(15,23,42,0.25)'
+              }}
+            >
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{ 
+                  fontSize: '20px', 
+                  fontWeight: '700', 
+                  color: '#1e293b',
+                  margin: '0 0 8px 0'
+                }}>
+                  ⚙️ Modifier les Permissions
+                </h3>
+                <p style={{ 
+                  color: '#64748b', 
+                  margin: 0,
+                  fontSize: '14px'
+                }}>
+                  Permissions pour {selectedUser.name}
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {[
+                  { id: 'conversations', label: 'Gestion des conversations', icon: '💬', description: 'Voir et modérer les conversations' },
+                  { id: 'analytics', label: 'Accès aux analytics', icon: '📊', description: 'Consulter les statistiques d\'usage' },
+                  { id: 'configuration', label: 'Configuration système', icon: '⚙️', description: 'Modifier les paramètres du bot' },
+                  { id: 'users', label: 'Gestion des utilisateurs', icon: '👥', description: 'Ajouter/supprimer des administrateurs' }
+                ].map(permission => (
+                  <div key={permission.id} style={{ 
+                    padding: '16px',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '12px',
+                    background: 'rgba(249,250,251,0.5)'
+                  }}>
+                    <label style={{ 
+                      display: 'flex', 
+                      alignItems: 'flex-start', 
+                      gap: '12px',
+                      cursor: 'pointer'
+                    }}>
+                      <input 
+                        type="checkbox" 
+                        defaultChecked={selectedUser.permissions.includes(permission.id) || selectedUser.permissions.includes('all')}
+                        style={{ marginTop: '2px' }}
+                      />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          <span style={{ fontSize: '16px' }}>{permission.icon}</span>
+                          <span style={{ fontSize: '14px', fontWeight: '600', color: '#374151' }}>{permission.label}</span>
+                        </div>
+                        <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>{permission.description}</p>
+                      </div>
+                    </label>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ 
+                display: 'flex', 
+                gap: '12px', 
+                marginTop: '32px',
+                justifyContent: 'flex-end'
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setShowPermissionsModal(false)}
+                  style={{
+                    padding: '12px 24px',
+                    background: '#f1f5f9',
+                    color: '#64748b',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Annuler
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowPermissionsModal(false);
+                    setSelectedUser(null);
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b71c1c 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <span>💾</span>
+                  Enregistrer
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
