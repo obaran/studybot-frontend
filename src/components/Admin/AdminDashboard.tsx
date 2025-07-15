@@ -1866,6 +1866,548 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
           </>
         )}
 
+        {/* Section Analytics */}
+        {activeSection === 'analytics' && (
+          <>
+            {/* Métriques principales */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+                gap: '24px',
+                marginBottom: '32px'
+              }}
+            >
+              {/* Total Tokens */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  top: '-50%',
+                  right: '-20%',
+                  width: '120px',
+                  height: '120px',
+                  background: 'linear-gradient(135deg, #e2001a15 0%, #e2001a05 100%)',
+                  borderRadius: '50%'
+                }} />
+                
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      🪙
+                    </div>
+                    <div>
+                      <h4 style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#64748b',
+                        margin: '0'
+                      }}>
+                        Tokens Utilisés
+                      </h4>
+                      <p style={{
+                        fontSize: '28px',
+                        fontWeight: '800',
+                        color: '#1e293b',
+                        margin: '4px 0 0 0'
+                      }}>
+                        2,847,592
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{
+                      color: '#10b981',
+                      fontWeight: '600'
+                    }}>
+                      +12.5%
+                    </span>
+                    <span style={{ color: '#64748b' }}>
+                      vs mois dernier
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Coût Estimé */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  top: '-50%',
+                  right: '-20%',
+                  width: '120px',
+                  height: '120px',
+                  background: 'linear-gradient(135deg, #059669a15 0%, #05966905 100%)',
+                  borderRadius: '50%'
+                }} />
+                
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      💰
+                    </div>
+                    <div>
+                      <h4 style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#64748b',
+                        margin: '0'
+                      }}>
+                        Coût Estimé
+                      </h4>
+                      <p style={{
+                        fontSize: '28px',
+                        fontWeight: '800',
+                        color: '#1e293b',
+                        margin: '4px 0 0 0'
+                      }}>
+                        €428.97
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{
+                      color: '#ef4444',
+                      fontWeight: '600'
+                    }}>
+                      +8.2%
+                    </span>
+                    <span style={{ color: '#64748b' }}>
+                      ce mois-ci
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Sessions Actives */}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                style={{
+                  background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                  borderRadius: '16px',
+                  padding: '32px',
+                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
+                <div style={{
+                  position: 'absolute',
+                  top: '-50%',
+                  right: '-20%',
+                  width: '120px',
+                  height: '120px',
+                  background: 'linear-gradient(135deg, #3b82f615 0%, #3b82f605 100%)',
+                  borderRadius: '50%'
+                }} />
+                
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '16px'
+                  }}>
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                      borderRadius: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '20px'
+                    }}>
+                      👥
+                    </div>
+                    <div>
+                      <h4 style={{
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        color: '#64748b',
+                        margin: '0'
+                      }}>
+                        Sessions Actives
+                      </h4>
+                      <p style={{
+                        fontSize: '28px',
+                        fontWeight: '800',
+                        color: '#1e293b',
+                        margin: '4px 0 0 0'
+                      }}>
+                        147
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px'
+                  }}>
+                    <span style={{
+                      color: '#10b981',
+                      fontWeight: '600'
+                    }}>
+                      +24.1%
+                    </span>
+                    <span style={{ color: '#64748b' }}>
+                      aujourd'hui
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+
+            {/* Graphique d'utilisation */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '32px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                marginBottom: '32px'
+              }}
+            >
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 24px 0'
+              }}>
+                Utilisation Mensuelle - Janvier 2025
+              </h3>
+
+              {/* Graphique simplifié */}
+              <div style={{
+                height: '300px',
+                position: 'relative',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                borderRadius: '12px',
+                padding: '20px'
+              }}>
+                {/* Axe Y */}
+                <div style={{
+                  position: 'absolute',
+                  left: '0',
+                  top: '20px',
+                  bottom: '40px',
+                  width: '40px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-end',
+                  fontSize: '12px',
+                  color: '#64748b'
+                }}>
+                  <span>100k</span>
+                  <span>75k</span>
+                  <span>50k</span>
+                  <span>25k</span>
+                  <span>0</span>
+                </div>
+
+                {/* Graphique en barres */}
+                <div style={{
+                  marginLeft: '50px',
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  gap: '8px',
+                  paddingBottom: '40px'
+                }}>
+                  {[
+                    { day: '1', value: 45, label: '45k' },
+                    { day: '2', value: 52, label: '52k' },
+                    { day: '3', value: 38, label: '38k' },
+                    { day: '4', value: 61, label: '61k' },
+                    { day: '5', value: 28, label: '28k' },
+                    { day: '6', value: 19, label: '19k' },
+                    { day: '7', value: 15, label: '15k' },
+                    { day: '8', value: 43, label: '43k' },
+                    { day: '9', value: 67, label: '67k' },
+                    { day: '10', value: 55, label: '55k' },
+                    { day: '11', value: 41, label: '41k' },
+                    { day: '12', value: 33, label: '33k' },
+                    { day: '13', value: 72, label: '72k' },
+                    { day: '14', value: 85, label: '85k' },
+                    { day: '15', value: 91, label: '91k' },
+                  ].map((data, index) => (
+                    <motion.div
+                      key={data.day}
+                      initial={{ height: 0 }}
+                      animate={{ height: `${data.value}%` }}
+                      transition={{ delay: 0.3 + index * 0.05 }}
+                      style={{
+                        flex: 1,
+                        background: index === 14 
+                          ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
+                          : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        borderRadius: '4px 4px 0 0',
+                        position: 'relative',
+                        cursor: 'pointer',
+                        minWidth: '20px'
+                      }}
+                      whileHover={{
+                        scale: 1.05,
+                        transition: { duration: 0.2 }
+                      }}
+                      title={`${data.day} janvier: ${data.label} tokens`}
+                    >
+                      {/* Tooltip au survol */}
+                      <div style={{
+                        position: 'absolute',
+                        bottom: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: '#1e293b',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontSize: '10px',
+                        whiteSpace: 'nowrap',
+                        opacity: 0,
+                        pointerEvents: 'none',
+                        transition: 'opacity 0.2s'
+                      }}
+                      >
+                        {data.label}
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Axe X */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '0',
+                  left: '50px',
+                  right: '20px',
+                  height: '30px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  fontSize: '12px',
+                  color: '#64748b'
+                }}>
+                  <span>1</span>
+                  <span>5</span>
+                  <span>10</span>
+                  <span>15</span>
+                </div>
+              </div>
+
+              {/* Légende */}
+              <div style={{
+                marginTop: '20px',
+                display: 'flex',
+                gap: '24px',
+                fontSize: '14px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                    borderRadius: '2px'
+                  }} />
+                  <span style={{ color: '#64748b' }}>Jours précédents</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '12px',
+                    height: '12px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    borderRadius: '2px'
+                  }} />
+                  <span style={{ color: '#64748b' }}>Aujourd'hui</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Statistiques détaillées */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                gap: '24px'
+              }}
+            >
+              {/* Pic d'utilisation */}
+              <div style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1e293b',
+                  margin: '0 0 16px 0'
+                }}>
+                  🔥 Pic d'Utilisation
+                </h4>
+                <p style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#e2001a',
+                  margin: '0 0 8px 0'
+                }}>
+                  14h30 - 16h00
+                </p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#64748b',
+                  margin: '0'
+                }}>
+                  Moyenne de 125k tokens/heure
+                </p>
+              </div>
+
+              {/* Économie du mois */}
+              <div style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1e293b',
+                  margin: '0 0 16px 0'
+                }}>
+                  💡 Optimisation IA
+                </h4>
+                <p style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#10b981',
+                  margin: '0 0 8px 0'
+                }}>
+                  -€89.45
+                </p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#64748b',
+                  margin: '0'
+                }}>
+                  Économisé grâce au cache
+                </p>
+              </div>
+
+              {/* Temps de réponse moyen */}
+              <div style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#1e293b',
+                  margin: '0 0 16px 0'
+                }}>
+                  ⚡ Temps de Réponse
+                </h4>
+                <p style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  color: '#3b82f6',
+                  margin: '0 0 8px 0'
+                }}>
+                  1.2s
+                </p>
+                <p style={{
+                  fontSize: '14px',
+                  color: '#64748b',
+                  margin: '0'
+                }}>
+                  Moyenne des 7 derniers jours
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+
         {/* Modal pour voir le prompt en grand */}
         {showPromptModal && (
           <motion.div
