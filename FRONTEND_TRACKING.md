@@ -96,24 +96,24 @@ const EMLYON_ASSETS = {
 };
 
 // Thème 100% fidèle à Flowise emlyon :
-button: {
+  button: {
   backgroundColor: "#d4a94e",     // ✅ Doré emlyon
   position: "bottom-right",       // ✅ Drag & drop libre
   size: 48,                      // ✅ 48px parfait
   iconColor: "white",            // ✅ Blanc sur doré
   customIconSrc: ASSETS.buttonIcon // ✅ SVG officiel
 },
-chatWindow: {
+  chatWindow: {
   backgroundColor: "#ffffff",     // ✅ Blanc pur
   width: 400,                    // ✅ Desktop fixe
   height: 700,                   // ✅ Desktop / 85vh mobile
   title: "Studybot",            // ✅ Titre officiel
-  botMessage: {
+    botMessage: {
     backgroundColor: "#f7f8ff",   // ✅ Gris clair emlyon
     textColor: "#303235",        // ✅ Texte sombre
     avatarSrc: ASSETS.botAvatar  // ✅ Avatar officiel
   },
-  userMessage: {
+    userMessage: {
     backgroundColor: "#d4a94e",   // ✅ Doré emlyon
     textColor: "#ffffff",        // ✅ Blanc sur doré
     avatarSrc: ASSETS.userAvatar // ✅ Avatar étudiant

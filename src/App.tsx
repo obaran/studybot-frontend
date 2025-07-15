@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 import StudyBotAPI, { type ChatRequest } from './services/api';
 import TypewriterText from './components/TypewriterText';
+import AdminDashboard from './components/admin/AdminDashboard';
 
 // 🎯 Assets emlyon officiels (depuis flowise-design-reference.js)
 const EMLYON_ASSETS = {
@@ -632,125 +633,17 @@ const App: React.FC = () => {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       
-      {/* En-tête de démonstration */}
-      <motion.div 
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.2 }}
-        style={{
-          maxWidth: '800px',
-          margin: '0 auto',
-          textAlign: 'center',
-          marginBottom: '40px'
-        }}
-      >
-        <h1 style={{
-          color: '#d4a94e',
-          fontSize: '2.5rem',
-          fontWeight: '700',
-          marginBottom: '16px'
-        }}>
-          🎭 StudyBot + Framer Motion
-        </h1>
-        <p style={{
-          color: '#666',
-          fontSize: '1.1rem',
-          lineHeight: '1.6',
-          marginBottom: '32px'
-        }}>
-          **Animations fluides professionnelles** pour <strong>emlyon business school</strong>
-        </p>
-        
-        <motion.div 
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-          style={{
-            background: 'white',
-            borderRadius: '12px',
-            padding: '24px',
-            boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-            textAlign: 'left'
-          }}
-        >
-          <h2 style={{ 
-            color: '#303235', 
-            fontSize: '1.3rem', 
-            marginBottom: '16px',
-            borderBottom: '2px solid #d4a94e',
-            paddingBottom: '8px'
-          }}>
-            ✨ Phase 2 - Auto-Scroll & UX Parfait !
-          </h2>
-          <ul style={{ 
-            color: '#666', 
-            lineHeight: '1.8',
-            marginLeft: '20px'
-          }}>
-            <li>🎭 <strong>Animations fluides</strong> - Ouverture/fermeture chat avec spring ✅</li>
-            <li>💬 <strong>Messages animés</strong> - Apparition avec scale + slide ✅</li>
-            <li>💭 <strong>Typing indicator</strong> - Dots qui bougent en boucle ✅</li>
-            <li>🔊 <strong>Sons de notification</strong> - Web Audio API pour envoi/réception ✅</li>
-            <li>👍👎 <strong>Feedback thumbs</strong> - Boutons utile/pas utile sur messages bot ✅</li>
-            <li>📜 <strong>Auto-scroll fluide</strong> - Chat suit automatiquement les nouveaux messages ✅</li>
-          </ul>
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.6 }}
-          style={{
-            marginTop: '24px',
-            padding: '16px',
-            backgroundColor: '#e6f3ff',
-            borderRadius: '8px',
-            border: '1px solid #b3d9ff'
-          }}
-        >
-          <p style={{
-            color: '#0066cc',
-            fontSize: '0.95rem',
-            margin: '0'
-          }}>
-            📜 <strong>Auto-Scroll Intelligent :</strong> Le chat descend automatiquement vers les nouveaux messages ! 
-            Comme WhatsApp/Messenger, vous voyez toujours la dernière conversation sans scroller manuellement ! 
-            🎯 UX optimisée pour les vraies conditions d'usage.
-          </p>
-        </motion.div>
-      </motion.div>
-
-      {/* Contenu informatif */}
-      <motion.div 
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.8 }}
-        style={{
-          maxWidth: '600px',
-          margin: '0 auto',
-          background: 'white',
-          borderRadius: '12px',
-          padding: '32px',
-          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.05)',
-          lineHeight: '1.7'
-        }}
-      >
-        <h3 style={{ color: '#303235', marginBottom: '20px' }}>
-          📜 Auto-Scroll & Expérience Chat Parfaite
-        </h3>
-        <p style={{ color: '#666', marginBottom: '16px' }}>
-          **StudyBot** offre maintenant une **expérience chat native** avec auto-scroll intelligent. 
-          Chaque nouveau message fait descendre automatiquement la conversation vers le bas.
-        </p>
-        <p style={{ color: '#666', marginBottom: '16px' }}>
-          **Comme les vraies apps** (WhatsApp, Messenger, Teams) : plus besoin de scroller manuellement ! 
-          Le chat **suit la discussion en temps réel** avec animations fluides.
-        </p>
-        <p style={{ color: '#666' }}>
-          **Stack technique complète :** React 18 + TypeScript + Framer Motion + Web Audio API + 
-          Auto-scroll + Feedback système + Drag & drop = **StudyBot Production Ready** ! 🚀
-        </p>
-      </motion.div>
+      {/* Dashboard Admin en arrière-plan */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 1
+      }}>
+        <AdminDashboard />
+      </div>
 
       {/* Widget StudyBot - Phase 2 avec Framer Motion */}
       <div style={{
