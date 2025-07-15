@@ -23,10 +23,16 @@ const MOCK_METRICS = {
 };
 
 const MOCK_CONVERSATIONS = [
-  { id: 1, user: 'Étudiant BBA2', lastMessage: 'Merci pour les informations sur les horaires', time: '14:32', status: 'completed' },
-  { id: 2, user: 'Étudiant BBA1', lastMessage: 'Comment accéder aux cours en ligne ?', time: '14:28', status: 'active' },
-  { id: 3, user: 'Étudiant BBA3', lastMessage: 'Informations sur les stages', time: '14:15', status: 'completed' },
-  { id: 4, user: 'Étudiant BBA4', lastMessage: 'Contact coordinateur Lyon', time: '13:45', status: 'completed' },
+  { id: 1, user: 'Étudiant BBA2', lastMessage: 'Merci pour les informations sur les horaires', time: '14:32', date: '2025-01-15', status: 'completed', feedback: 'positive', messageCount: 5 },
+  { id: 2, user: 'Étudiant BBA1', lastMessage: 'Comment accéder aux cours en ligne ?', time: '14:28', date: '2025-01-15', status: 'active', feedback: null, messageCount: 3 },
+  { id: 3, user: 'Étudiant BBA3', lastMessage: 'Informations sur les stages', time: '14:15', date: '2025-01-15', status: 'completed', feedback: 'positive', messageCount: 8 },
+  { id: 4, user: 'Étudiant BBA4', lastMessage: 'Contact coordinateur Lyon', time: '13:45', date: '2025-01-15', status: 'completed', feedback: 'negative', messageCount: 4 },
+  { id: 5, user: 'Étudiant BBA1', lastMessage: 'Problème avec mon planning de cours', time: '12:30', date: '2025-01-15', status: 'completed', feedback: 'negative', messageCount: 6 },
+  { id: 6, user: 'Étudiant BBA3', lastMessage: 'Excellente aide pour les démarches administratives', time: '11:15', date: '2025-01-14', status: 'completed', feedback: 'positive', messageCount: 7 },
+  { id: 7, user: 'Étudiant BBA2', lastMessage: 'Informations incomplètes sur les examens', time: '16:45', date: '2025-01-14', status: 'completed', feedback: 'negative', messageCount: 9 },
+  { id: 8, user: 'Étudiant BBA4', lastMessage: 'Merci pour l\'aide avec les coordonnées', time: '10:22', date: '2025-01-14', status: 'completed', feedback: 'positive', messageCount: 3 },
+  { id: 9, user: 'Étudiant BBA1', lastMessage: 'Questions sur les stages à l\'étranger', time: '09:15', date: '2025-01-13', status: 'completed', feedback: 'positive', messageCount: 12 },
+  { id: 10, user: 'Étudiant BBA3', lastMessage: 'Réponse pas claire sur les frais de scolarité', time: '15:30', date: '2025-01-13', status: 'completed', feedback: 'negative', messageCount: 5 },
 ];
 
 const MOCK_SYSTEM_PROMPT: SystemPrompt = {
@@ -164,6 +170,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
   const [modalContent, setModalContent] = React.useState('');
   const [hasModalChanges, setHasModalChanges] = React.useState(false);
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [feedbackFilter, setFeedbackFilter] = React.useState('all'); // 'all', 'positive', 'negative'
+  const [selectedDate, setSelectedDate] = React.useState(''); // Date sélectionnée au format YYYY-MM-DD
+  const [isCalendarOpen, setIsCalendarOpen] = React.useState(false); // État du calendrier popup
+
+  // Générer les dates pour le calendrier (janvier 2025)
+  const generateCalendarDates = () => {
+    const dates = [];
+    const currentDate = new Date(2025, 0, 1); // Janvier 2025
+    const daysInMonth = new Date(2025, 0 + 1, 0).getDate();
+    
+    for (let day = 1; day <= daysInMonth; day++) {
+      const date = new Date(2025, 0, day);
+      const dateString = date.toISOString().split('T')[0];
+      const hasConversations = MOCK_CONVERSATIONS.some(conv => conv.date === dateString);
+      
+      dates.push({
+        day,
+        dateString,
+        hasConversations,
+        isToday: dateString === '2025-01-15' // Simuler "aujourd'hui"
+      });
+    }
+    return dates;
+  };
   return (
     <div className={className} style={{
       height: '100vh',
@@ -1245,7 +1276,597 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
           </>
         )}
 
-                {/* Modal pour voir le prompt en grand */}
+        {/* Section Conversations */}
+        {activeSection === 'conversations' && (
+          <>
+                        {/* Filtres et recherche */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.1 }}
+              style={{
+                marginBottom: '32px'
+              }}
+            >
+              {/* Ligne 1: Barre de recherche */}
+              <div style={{ marginBottom: '16px' }}>
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <motion.input
+                    type="text"
+                    placeholder="Rechercher dans les conversations..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    whileFocus={{ scale: 1.005 }}
+                    style={{
+                      width: '100%',
+                      padding: '18px 24px 18px 56px',
+                      borderRadius: '16px',
+                      border: '2px solid transparent',
+                      fontSize: '15px',
+                      outline: 'none',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                      transition: 'all 0.3s ease',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: '500',
+                      color: '#1e293b'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #e2001a';
+                      e.target.style.boxShadow = '0 4px 16px rgba(226, 0, 26, 0.15), 0 8px 32px rgba(0, 0, 0, 0.08)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid transparent';
+                      e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)';
+                    }}
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    left: '20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '20px',
+                    height: '20px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '11px'
+                  }}>
+                    🔍
+                  </div>
+                </div>
+              </div>
+
+              {/* Ligne 2: Filtres */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px'
+              }}>
+                {/* Sélecteur de date avec calendrier popup */}
+                <div style={{ position: 'relative' }}>
+                  {/* Bouton principal du calendrier */}
+                  <motion.button
+                    onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    style={{
+                      width: '100%',
+                      padding: '16px 50px 16px 50px',
+                      borderRadius: '12px',
+                      border: `2px solid ${isCalendarOpen ? '#e2001a' : 'transparent'}`,
+                      fontSize: '14px',
+                      outline: 'none',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                      boxShadow: isCalendarOpen 
+                        ? '0 4px 16px rgba(226, 0, 26, 0.15), 0 8px 32px rgba(0, 0, 0, 0.08)'
+                        : '0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                      cursor: 'pointer',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: '600',
+                      color: '#1e293b',
+                      transition: 'all 0.3s ease',
+                      textAlign: 'left',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between'
+                    }}
+                  >
+                    <span>
+                      {selectedDate 
+                        ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', {
+                            weekday: 'long',
+                            day: 'numeric',
+                            month: 'long'
+                          })
+                        : 'Toutes les dates'}
+                    </span>
+                  </motion.button>
+                  
+                  {/* Icône calendrier */}
+                  <div style={{
+                    position: 'absolute',
+                    left: '20px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '16px',
+                    height: '16px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '10px',
+                    color: 'white',
+                    pointerEvents: 'none'
+                  }}>
+                    📅
+                  </div>
+
+                  {/* Bouton reset */}
+                  {selectedDate && (
+                    <motion.button
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDate('');
+                      }}
+                      style={{
+                        position: 'absolute',
+                        right: '16px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '20px',
+                        height: '20px',
+                        background: '#64748b',
+                        border: 'none',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '12px',
+                        color: 'white',
+                        cursor: 'pointer'
+                      }}
+                      title="Effacer la date"
+                    >
+                      ✕
+                    </motion.button>
+                  )}
+
+                  {/* Calendrier popup */}
+                  {isCalendarOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '0',
+                        right: '0',
+                        marginTop: '8px',
+                        background: 'white',
+                        borderRadius: '16px',
+                        boxShadow: '0 20px 45px rgba(0, 0, 0, 0.15), 0 8px 20px rgba(0, 0, 0, 0.1)',
+                        border: '1px solid #e2e8f0',
+                        zIndex: 1000,
+                        overflow: 'hidden',
+                        padding: '20px'
+                      }}
+                    >
+                      {/* En-tête du calendrier */}
+                      <div style={{
+                        textAlign: 'center',
+                        marginBottom: '16px',
+                        padding: '8px',
+                        background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                        borderRadius: '8px',
+                        color: 'white',
+                        fontWeight: '700',
+                        fontSize: '16px'
+                      }}>
+                        Janvier 2025
+                      </div>
+
+                      {/* Jours de la semaine */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(7, 1fr)',
+                        gap: '4px',
+                        marginBottom: '8px'
+                      }}>
+                        {['L', 'M', 'M', 'J', 'V', 'S', 'D'].map((day, i) => (
+                          <div key={i} style={{
+                            textAlign: 'center',
+                            padding: '8px 4px',
+                            fontSize: '12px',
+                            fontWeight: '600',
+                            color: '#64748b'
+                          }}>
+                            {day}
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Grille des dates */}
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(7, 1fr)',
+                        gap: '4px'
+                      }}>
+                        {/* Espaces vides pour commencer le mois au bon jour */}
+                        {Array.from({ length: 2 }).map((_, i) => (
+                          <div key={`empty-${i}`} style={{ height: '36px' }} />
+                        ))}
+                        
+                        {/* Dates du mois */}
+                        {generateCalendarDates().map((dateInfo) => (
+                          <motion.button
+                            key={dateInfo.day}
+                            onClick={() => {
+                              setSelectedDate(dateInfo.dateString);
+                              setIsCalendarOpen(false);
+                            }}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.9 }}
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              position: 'relative',
+                              background: selectedDate === dateInfo.dateString
+                                ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
+                                : dateInfo.isToday
+                                ? 'linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)'
+                                : dateInfo.hasConversations
+                                ? 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)'
+                                : 'transparent',
+                              color: selectedDate === dateInfo.dateString || dateInfo.isToday
+                                ? 'white'
+                                : dateInfo.hasConversations
+                                ? '#1e293b'
+                                : '#94a3b8',
+                              transition: 'all 0.2s ease'
+                            }}
+                          >
+                            {dateInfo.day}
+                            {dateInfo.hasConversations && (
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '2px',
+                                right: '2px',
+                                width: '6px',
+                                height: '6px',
+                                borderRadius: '50%',
+                                background: selectedDate === dateInfo.dateString ? 'white' : '#e2001a'
+                              }} />
+                            )}
+                          </motion.button>
+                        ))}
+                      </div>
+
+                      {/* Légende */}
+                      <div style={{
+                        marginTop: '16px',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        gap: '16px',
+                        fontSize: '12px',
+                        color: '#64748b'
+                      }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#e2001a'
+                          }} />
+                          Conversations
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            background: '#fbbf24'
+                          }} />
+                          Aujourd'hui
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Filtre par feedback */}
+                <div style={{ position: 'relative' }}>
+                  <motion.select
+                    value={feedbackFilter}
+                    onChange={(e) => setFeedbackFilter(e.target.value)}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    style={{
+                      width: '100%',
+                      padding: '16px 50px 16px 24px',
+                      borderRadius: '12px',
+                      border: '2px solid transparent',
+                      fontSize: '14px',
+                      outline: 'none',
+                      background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                      boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                      cursor: 'pointer',
+                      fontFamily: 'Inter, sans-serif',
+                      fontWeight: '600',
+                      color: '#1e293b',
+                      transition: 'all 0.3s ease',
+                      appearance: 'none'
+                    }}
+                    onFocus={(e) => {
+                      e.target.style.border = '2px solid #e2001a';
+                      e.target.style.boxShadow = '0 4px 16px rgba(226, 0, 26, 0.15), 0 8px 32px rgba(0, 0, 0, 0.08)';
+                    }}
+                    onBlur={(e) => {
+                      e.target.style.border = '2px solid transparent';
+                      e.target.style.boxShadow = '0 4px 16px rgba(0, 0, 0, 0.06), 0 2px 8px rgba(0, 0, 0, 0.04)';
+                    }}
+                  >
+                    <option value="all">🌟 Tous les feedbacks</option>
+                    <option value="positive">👍 Feedback positif</option>
+                    <option value="negative">👎 Feedback négatif</option>
+                  </motion.select>
+                  
+                  <div style={{
+                    position: 'absolute',
+                    right: '16px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    width: '14px',
+                    height: '14px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    borderRadius: '3px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '8px',
+                    color: 'white',
+                    pointerEvents: 'none'
+                  }}>
+                    ▼
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* Liste des conversations */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.2 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '20px',
+                padding: '32px',
+                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.2)'
+              }}
+            >
+              <h3 style={{
+                fontSize: '20px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 24px 0'
+              }}>
+                Conversations ({(() => {
+                  const filtered = MOCK_CONVERSATIONS.filter(conv => {
+                    const matchesSearch = conv.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesFeedback = feedbackFilter === 'all' || 
+                                          (feedbackFilter === 'positive' && conv.feedback === 'positive') ||
+                                          (feedbackFilter === 'negative' && conv.feedback === 'negative');
+                    
+                    // Filtre par date sélectionnée
+                    const matchesDate = !selectedDate || conv.date === selectedDate;
+                    
+                    return matchesSearch && matchesFeedback && matchesDate;
+                  });
+                  return filtered.length;
+                })()})
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(() => {
+                  // Filtrage et tri des conversations
+                  const filtered = MOCK_CONVERSATIONS.filter(conv => {
+                    const matchesSearch = conv.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchesFeedback = feedbackFilter === 'all' || 
+                                          (feedbackFilter === 'positive' && conv.feedback === 'positive') ||
+                                          (feedbackFilter === 'negative' && conv.feedback === 'negative');
+                    
+                    // Filtre par date sélectionnée
+                    const matchesDate = !selectedDate || conv.date === selectedDate;
+                    
+                    return matchesSearch && matchesFeedback && matchesDate;
+                  });
+
+                                     // Tri par date/heure (plus récent en premier)
+                   const sorted = filtered.sort((a, b) => {
+                     const dateA = new Date(`${a.date}T${a.time}`).getTime();
+                     const dateB = new Date(`${b.date}T${b.time}`).getTime();
+                     return dateB - dateA;
+                   });
+
+                  return sorted.map((conversation, index) => (
+                    <motion.div
+                      key={conversation.id}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 + index * 0.05 }}
+                      whileHover={{ x: 4 }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        padding: '20px',
+                        borderRadius: '16px',
+                        border: '2px solid transparent',
+                        transition: 'all 0.3s ease',
+                        cursor: 'pointer',
+                        backgroundColor: conversation.status === 'active' ? 'rgba(5, 150, 105, 0.05)' : 'transparent'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = conversation.status === 'active' 
+                          ? 'rgba(5, 150, 105, 0.1)' 
+                          : 'rgba(226, 0, 26, 0.03)';
+                        e.currentTarget.style.borderColor = 'rgba(226, 0, 26, 0.2)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = conversation.status === 'active' 
+                          ? 'rgba(5, 150, 105, 0.05)' 
+                          : 'transparent';
+                        e.currentTarget.style.borderColor = 'transparent';
+                      }}
+                    >
+                      {/* Avatar utilisateur */}
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontWeight: '600',
+                        fontSize: '16px',
+                        marginRight: '16px'
+                      }}>
+                        {conversation.user.charAt(0)}
+                      </div>
+
+                      {/* Contenu conversation */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                          <div>
+                            <h4 style={{
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              color: '#1e293b',
+                              margin: '0 0 4px 0'
+                            }}>
+                              {conversation.user}
+                            </h4>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                              <span style={{
+                                fontSize: '12px',
+                                color: '#64748b',
+                                fontWeight: '500'
+                              }}>
+                                {conversation.date} • {conversation.time}
+                              </span>
+                              <span style={{
+                                fontSize: '12px',
+                                color: '#64748b',
+                                fontWeight: '500'
+                              }}>
+                                {conversation.messageCount} messages
+                              </span>
+                            </div>
+                          </div>
+                          
+                          {/* Status et feedback */}
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            {conversation.feedback && (
+                              <span style={{
+                                fontSize: '16px'
+                              }}>
+                                {conversation.feedback === 'positive' ? '👍' : '👎'}
+                              </span>
+                            )}
+                            <span style={{
+                              fontSize: '11px',
+                              fontWeight: '600',
+                              color: conversation.status === 'active' ? '#059669' : '#64748b',
+                              backgroundColor: conversation.status === 'active' ? 'rgba(5, 150, 105, 0.1)' : 'rgba(100, 116, 139, 0.1)',
+                              padding: '4px 8px',
+                              borderRadius: '8px',
+                              textTransform: 'uppercase'
+                            }}>
+                              {conversation.status === 'active' ? 'EN COURS' : 'TERMINÉ'}
+                            </span>
+                          </div>
+                        </div>
+                        
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#64748b',
+                          margin: '0',
+                          lineHeight: '1.5'
+                        }}>
+                          {conversation.lastMessage}
+                        </p>
+                      </div>
+
+                      {/* Actions */}
+                      <div style={{ marginLeft: '16px', display: 'flex', gap: '8px' }}>
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px'
+                          }}
+                          title="Voir la conversation"
+                        >
+                          👁️
+                        </motion.button>
+                        
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '12px'
+                          }}
+                          title="Supprimer"
+                        >
+                          🗑️
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  ));
+                })()}
+              </div>
+            </motion.div>
+          </>
+        )}
+
+        {/* Modal pour voir le prompt en grand */}
         {showPromptModal && (
           <motion.div
             initial={{ opacity: 0 }}
