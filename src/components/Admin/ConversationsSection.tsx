@@ -8,6 +8,8 @@ const ConversationsSection: React.FC = () => {
   const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'positive' | 'negative'>('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [showConversationModal, setShowConversationModal] = useState(false);
 
   // Utiliser le hook pour récupérer les vraies données
   const {
@@ -17,10 +19,8 @@ const ConversationsSection: React.FC = () => {
     totalPages,
     loading,
     error,
-    filters,
     updateFilters,
     updatePagination,
-    searchConversations,
     exportConversations,
     refetch
   } = useConversations();
@@ -39,7 +39,6 @@ const ConversationsSection: React.FC = () => {
   // Générer les dates pour le calendrier (janvier 2025)
   const generateCalendarDates = () => {
     const dates = [];
-    const currentDate = new Date(2025, 0, 1); // Janvier 2025
     const daysInMonth = new Date(2025, 0 + 1, 0).getDate();
     
     for (let day = 1; day <= daysInMonth; day++) {
@@ -50,7 +49,7 @@ const ConversationsSection: React.FC = () => {
         day,
         dateString,
         hasConversations: conversations.some(conv => 
-          conv.startTime.toISOString().split('T')[0] === dateString
+          new Date(conv.startTime).toISOString().split('T')[0] === dateString
         ),
         isToday: dateString === new Date().toISOString().split('T')[0]
       });
@@ -582,10 +581,10 @@ const ConversationsSection: React.FC = () => {
                   justifyContent: 'center',
                   color: 'white',
                   fontWeight: '600',
-                  fontSize: '16px',
+                  fontSize: '20px',
                   marginRight: '16px'
                 }}>
-                  {conversation.user.identifier.charAt(0)}
+                  👤
                 </div>
 
                 {/* Contenu conversation */}
@@ -655,7 +654,11 @@ const ConversationsSection: React.FC = () => {
                     lineHeight: '1.5',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap'
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    wordBreak: 'break-word',
+                    maxWidth: '400px'
                   }}>
                     {conversation.lastMessage}
                   </p>
@@ -680,7 +683,10 @@ const ConversationsSection: React.FC = () => {
                       fontSize: '12px'
                     }}
                     title="Voir la conversation"
-                    onClick={() => console.log('Voir conversation:', conversation.id)}
+                    onClick={() => {
+                      setSelectedConversation(conversation);
+                      setShowConversationModal(true);
+                    }}
                   >
                     👁️
                   </motion.button>
@@ -754,6 +760,150 @@ const ConversationsSection: React.FC = () => {
           </div>
         )}
       </motion.div>
+
+      {/* Modal Conversation Complète */}
+      {showConversationModal && selectedConversation && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: '20px'
+          }}
+          onClick={() => setShowConversationModal(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            style={{
+              backgroundColor: 'white',
+              borderRadius: '20px',
+              padding: '32px',
+              maxWidth: '800px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 50px rgba(0, 0, 0, 0.15)'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <div>
+                <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1e293b', margin: '0 0 8px 0' }}>
+                  Conversation complète
+                </h2>
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                    👤 {selectedConversation.user.identifier}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                    📅 {new Date(selectedConversation.startTime).toLocaleDateString('fr-FR')}
+                  </span>
+                  <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
+                    💬 {selectedConversation.messageCount} messages
+                  </span>
+                </div>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={() => setShowConversationModal(false)}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#f1f5f9',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '16px'
+                }}
+              >
+                ✕
+              </motion.button>
+            </div>
+
+            {/* Messages */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {selectedConversation.messages.map((message: any) => (
+                <div
+                  key={message.id}
+                  style={{
+                    display: 'flex',
+                    flexDirection: message.type === 'user' ? 'row' : 'row-reverse',
+                    gap: '12px'
+                  }}
+                >
+                  {/* Avatar */}
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '20px',
+                    backgroundColor: message.type === 'user' ? '#e2001a' : '#059669',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '16px',
+                    flexShrink: 0
+                  }}>
+                    {message.type === 'user' ? '👤' : '🤖'}
+                  </div>
+
+                  {/* Message */}
+                  <div style={{
+                    maxWidth: '70%',
+                    padding: '16px',
+                    borderRadius: '16px',
+                    backgroundColor: message.type === 'user' ? '#f8fafc' : '#f0fdf4',
+                    border: `1px solid ${message.type === 'user' ? '#e2e8f0' : '#bbf7d0'}`
+                  }}>
+                    <p style={{
+                      margin: '0',
+                      fontSize: '14px',
+                      lineHeight: '1.5',
+                      color: '#1e293b',
+                      whiteSpace: 'pre-wrap'
+                    }}>
+                      {message.content}
+                    </p>
+                    <div style={{
+                      marginTop: '8px',
+                      fontSize: '12px',
+                      color: '#64748b'
+                    }}>
+                      {new Date(message.timestamp).toLocaleTimeString('fr-FR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                      {message.metadata && (
+                        <span style={{ marginLeft: '8px' }}>
+                          • {message.metadata.tokensUsed} tokens • {message.metadata.responseTime}ms
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </>
   );
 };

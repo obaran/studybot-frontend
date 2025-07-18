@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import ConversationsSection from './ConversationsSection';
-import ConversationsTest from './ConversationsTest';
+
 
 interface AdminDashboardProps {
   className?: string;
@@ -180,10 +180,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [showPermissionsModal, setShowPermissionsModal] = React.useState(false); // Modal de permissions
   const [selectedUser, setSelectedUser] = React.useState<any>(null); // Utilisateur sélectionné pour édition
 
-  // Générer les dates pour le calendrier (janvier 2025)
+  // Générer les dates pour le calendrier (janvier 2025) - utilisée dans la section legacy désactivée
   const generateCalendarDates = () => {
     const dates = [];
-    const currentDate = new Date(2025, 0, 1); // Janvier 2025
+    // const currentDate = new Date(2025, 0, 1); // Janvier 2025 - non utilisée actuellement
     const daysInMonth = new Date(2025, 0 + 1, 0).getDate();
     
     for (let day = 1; day <= daysInMonth; day++) {
@@ -1281,11 +1281,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
           </>
         )}
 
-        {/* Test API */}
-        {activeSection === 'conversations' && <ConversationsTest />}
+
 
         {/* Section Conversations */}
-        {activeSection === 'conversations' && (
+        {activeSection === 'conversations' && <ConversationsSection />}
+        
+        {/* LEGACY - Section Conversations Inline (sera supprimé) */}
+        {false && activeSection === 'conversations' && (
           <>
                         {/* Filtres et recherche */}
             <motion.div
