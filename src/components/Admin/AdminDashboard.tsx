@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import ConversationsSection from './ConversationsSection';
+import ConversationsTest from './ConversationsTest';
 
 interface AdminDashboardProps {
   className?: string;
@@ -1278,6 +1280,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
             </motion.div>
           </>
         )}
+
+        {/* Test API */}
+        {activeSection === 'conversations' && <ConversationsTest />}
 
         {/* Section Conversations */}
         {activeSection === 'conversations' && (
