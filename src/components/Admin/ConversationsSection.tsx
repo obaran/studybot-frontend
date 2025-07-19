@@ -10,6 +10,43 @@ const ConversationsSection: React.FC = () => {
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [showConversationModal, setShowConversationModal] = useState(false);
+  
+  // États pour la navigation du calendrier
+  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
+  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+
+  // Fonctions de navigation du calendrier
+  const goToPreviousMonth = () => {
+    if (currentMonth === 0) {
+      setCurrentMonth(11);
+      setCurrentYear(currentYear - 1);
+    } else {
+      setCurrentMonth(currentMonth - 1);
+    }
+  };
+
+  const goToNextMonth = () => {
+    if (currentMonth === 11) {
+      setCurrentMonth(0);
+      setCurrentYear(currentYear + 1);
+    } else {
+      setCurrentMonth(currentMonth + 1);
+    }
+  };
+
+  const goToCurrentMonth = () => {
+    const now = new Date();
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+  };
+
+  // Calculer les informations du mois actuel
+  const monthName = new Date(currentYear, currentMonth).toLocaleDateString('fr-FR', { 
+    month: 'long', 
+    year: 'numeric' 
+  });
+  
+  const monthNameCapitalized = monthName.charAt(0).toUpperCase() + monthName.slice(1);
 
   // Utiliser le hook pour récupérer les vraies données
   const {
@@ -253,18 +290,69 @@ const ConversationsSection: React.FC = () => {
                   padding: '20px'
                 }}
               >
-                {/* En-tête du calendrier */}
+                {/* En-tête du calendrier avec navigation */}
                 <div style={{
-                  textAlign: 'center',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
                   marginBottom: '16px',
-                  padding: '8px',
+                  padding: '12px 16px',
                   background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontWeight: '700',
-                  fontSize: '16px'
+                  borderRadius: '12px',
+                  color: 'white'
                 }}>
-                  Janvier 2025
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={goToPreviousMonth}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    ← Préc.
+                  </motion.button>
+                  
+                  <motion.div
+                    whileHover={{ scale: 1.05 }}
+                    onClick={goToCurrentMonth}
+                    style={{
+                      textAlign: 'center',
+                      fontWeight: '700',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      transition: 'background-color 0.2s ease'
+                    }}
+                    title="Retour au mois actuel"
+                  >
+                    {monthNameCapitalized}
+                  </motion.div>
+                  
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={goToNextMonth}
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.2)',
+                      border: 'none',
+                      borderRadius: '8px',
+                      color: 'white',
+                      padding: '8px 12px',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    Suiv. →
+                  </motion.button>
                 </div>
 
                 {/* Jours de la semaine */}
@@ -287,69 +375,148 @@ const ConversationsSection: React.FC = () => {
                   ))}
                 </div>
 
-                {/* Grille des jours */}
+                                {/* Grille des jours */}
                 <div style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(7, 1fr)',
                   gap: '2px'
                 }}>
-                  {/* Jours du mois de janvier 2025 */}
-                  {Array.from({ length: 31 }, (_, i) => {
-                    const day = i + 1;
-                    const dateString = `2025-01-${day.toString().padStart(2, '0')}`;
-                    const isToday = new Date().toISOString().split('T')[0] === dateString;
-                                         const hasConversations = conversations?.some(conv => 
-                       new Date(conv.startTime).toISOString().split('T')[0] === dateString
-                     );
+                  {(() => {
+                    const firstDay = new Date(currentYear, currentMonth, 1);
+                    const lastDay = new Date(currentYear, currentMonth + 1, 0);
+                    const daysInMonth = lastDay.getDate();
+                    const startingDayOfWeek = (firstDay.getDay() + 6) % 7; // Lundi = 0
                     
-                    return (
-                      <motion.button
-                        key={day}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => {
-                          setSelectedDate(dateString);
-                          setIsCalendarOpen(false);
-                        }}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          border: 'none',
-                          borderRadius: '8px',
-                          background: selectedDate === dateString 
-                            ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)' 
-                            : isToday 
-                            ? 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' 
-                            : hasConversations 
-                            ? 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)'
-                            : 'transparent',
-                          color: selectedDate === dateString
-                            ? 'white'
-                            : isToday 
-                              ? '#1e293b'
-                              : '#64748b',
-                          fontSize: '13px',
-                          fontWeight: selectedDate === dateString || isToday ? '600' : '500',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          transition: 'all 0.2s ease'
-                        }}
-                      >
-                        {day}
-                        {hasConversations && (
-                          <div style={{
-                            position: 'absolute',
-                            bottom: '2px',
-                            right: '2px',
-                            width: '4px',
-                            height: '4px',
-                            backgroundColor: selectedDate === dateString ? 'white' : '#e2001a',
-                            borderRadius: '50%'
-                          }} />
-                        )}
-                      </motion.button>
-                    );
-                  })}
+                    const days = [];
+                    
+                    // Jours du mois précédent (grisons)
+                    const prevMonth = new Date(currentYear, currentMonth - 1, 0);
+                    for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+                      const day = prevMonth.getDate() - i;
+                      const dateString = `${currentMonth === 0 ? currentYear - 1 : currentYear}-${(currentMonth === 0 ? 12 : currentMonth).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                      
+                      days.push(
+                        <motion.button
+                          key={`prev-${day}`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setSelectedDate(dateString);
+                            setIsCalendarOpen(false);
+                            goToPreviousMonth();
+                          }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: 'transparent',
+                            color: '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: '400',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {day}
+                        </motion.button>
+                      );
+                    }
+                    
+                    // Jours du mois actuel
+                    const today = new Date().toISOString().split('T')[0];
+                    for (let day = 1; day <= daysInMonth; day++) {
+                      const dateString = `${currentYear}-${(currentMonth + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                      const isToday = today === dateString;
+                      const hasConversations = conversations?.some(conv => 
+                        new Date(conv.startTime).toISOString().split('T')[0] === dateString
+                      );
+                      
+                      days.push(
+                        <motion.button
+                          key={day}
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => {
+                            setSelectedDate(dateString);
+                            setIsCalendarOpen(false);
+                          }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: selectedDate === dateString 
+                              ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)' 
+                              : isToday 
+                              ? 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' 
+                              : hasConversations 
+                              ? 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)'
+                              : 'transparent',
+                            color: selectedDate === dateString
+                              ? 'white'
+                              : isToday 
+                                ? '#1e293b'
+                                : '#64748b',
+                            fontSize: '13px',
+                            fontWeight: selectedDate === dateString || isToday ? '600' : '500',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {day}
+                          {hasConversations && (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '2px',
+                              right: '2px',
+                              width: '4px',
+                              height: '4px',
+                              backgroundColor: selectedDate === dateString ? 'white' : '#e2001a',
+                              borderRadius: '50%'
+                            }} />
+                          )}
+                        </motion.button>
+                      );
+                    }
+                    
+                    // Jours du mois suivant (grisons) pour compléter la grille
+                    const totalCells = 42; // 6 semaines × 7 jours
+                    const remainingCells = totalCells - days.length;
+                    for (let day = 1; day <= remainingCells; day++) {
+                      const dateString = `${currentMonth === 11 ? currentYear + 1 : currentYear}-${(currentMonth === 11 ? 1 : currentMonth + 2).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                      
+                      days.push(
+                        <motion.button
+                          key={`next-${day}`}
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => {
+                            setSelectedDate(dateString);
+                            setIsCalendarOpen(false);
+                            goToNextMonth();
+                          }}
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            background: 'transparent',
+                            color: '#94a3b8',
+                            fontSize: '12px',
+                            fontWeight: '400',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          {day}
+                        </motion.button>
+                      );
+                    }
+                    
+                    return days;
+                  })()}
                 </div>
 
                 {/* Actions du calendrier */}
@@ -359,23 +526,46 @@ const ConversationsSection: React.FC = () => {
                   marginTop: '16px',
                   gap: '8px'
                 }}>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setIsCalendarOpen(false)}
-                    style={{
-                      padding: '8px 16px',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      background: 'white',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                      fontWeight: '500'
-                    }}
-                  >
-                    Fermer
-                  </motion.button>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setIsCalendarOpen(false)}
+                      style={{
+                        padding: '8px 16px',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '8px',
+                        background: 'white',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      Fermer
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        goToCurrentMonth();
+                      }}
+                      style={{
+                        padding: '8px 16px',
+                        border: '1px solid #3b82f6',
+                        borderRadius: '8px',
+                        background: 'white',
+                        color: '#3b82f6',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '500'
+                      }}
+                    >
+                      📅 Aujourd'hui
+                    </motion.button>
+                  </div>
+                  
                   {selectedDate && (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
@@ -395,7 +585,7 @@ const ConversationsSection: React.FC = () => {
                         fontWeight: '500'
                       }}
                     >
-                      Effacer
+                      Effacer sélection
                     </motion.button>
                   )}
                 </div>
