@@ -289,8 +289,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
         <nav style={{ flex: 1, padding: isSidebarCollapsed ? '0 8px' : '0 16px' }}>
           {[
             { icon: '📊', label: 'Dashboard', id: 'dashboard', badge: null },
-            { icon: '🤖', label: 'Prompt Système', id: 'prompt', badge: 'v1.3' },
             { icon: '💬', label: 'Conversations', id: 'conversations', badge: '12' },
+            { icon: '🤖', label: 'Prompt Système', id: 'prompt', badge: 'v1.3' },
             { icon: '📈', label: 'Analytics', id: 'analytics', badge: null },
             { icon: '⚙️', label: 'Configuration', id: 'config', badge: null },
             { icon: '👥', label: 'Utilisateurs', id: 'users', badge: '2.4k' },
