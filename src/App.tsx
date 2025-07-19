@@ -4,6 +4,7 @@ import './App.css';
 import StudyBotAPI, { type ChatRequest } from './services/api';
 import TypewriterText from './components/TypewriterText';
 import AdminDashboard from './components/admin/AdminDashboard';
+import { useSession } from './hooks/useSession';
 
 // 🎯 Assets emlyon officiels (depuis flowise-design-reference.js)
 const EMLYON_ASSETS = {
@@ -222,6 +223,9 @@ const App: React.FC = () => {
   const [feedbackType, setFeedbackType] = useState<'positive' | 'negative' | null>(null);
   const { playSendSound, playReceiveSound, playNotificationSound } = useSounds();
   
+  // 🧠 Hook de gestion de session persistante
+  const { sessionId, isNewSession, updateSessionActivity, resetSession } = useSession();
+  
   // 📜 Référence pour l'auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -234,6 +238,21 @@ const App: React.FC = () => {
       feedback: null
     }
   ]);
+
+  // 🔄 Réinitialiser les messages si nouvelle session
+  useEffect(() => {
+    if (isNewSession && sessionId) {
+      console.log('🆕 Nouvelle session détectée, réinitialisation des messages');
+      setMessages([
+        {
+          id: 1,
+          type: 'bot',
+          content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
+          feedback: null
+        }
+      ]);
+    }
+  }, [isNewSession, sessionId]);
 
   // 📜 Auto-scroll vers le bas quand messages changent
   const scrollToBottom = useCallback((smooth: boolean = true) => {
@@ -466,12 +485,15 @@ const App: React.FC = () => {
     }, 30000);
 
     try {
-      // Préparer la requête API
+      // Préparer la requête API avec session persistante
       const chatRequest: ChatRequest = {
         message: messageText,
         chatbot: 'studybot', // ou 'bibliobot' selon le contexte
-        sessionId: undefined // Le backend générera un sessionId
+        sessionId: sessionId || undefined // Utiliser la session persistante
       };
+
+      // Mettre à jour l'activité de session
+      updateSessionActivity();
 
       // Choisir l'endpoint selon le mode configuré
       const chatMode = import.meta.env.VITE_CHAT_MODE || 'mock';
@@ -935,12 +957,56 @@ const App: React.FC = () => {
                   </motion.span>
                 </div>
                 
-                <motion.button
-                  whileHover={{ scale: 1.1, rotate: 90 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsOpen(false)}
-                  style={{
-                    background: 'none',
+                {/* Boutons header */}
+                <div style={{
+                  display: 'flex',
+                  gap: '8px',
+                  alignItems: 'center',
+                  position: 'relative',
+                  zIndex: 1
+                }}>
+                  {/* Bouton Reset conversation - style discret comme la croix */}
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: -90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => {
+                      const newSessionId = resetSession();
+                      // Réinitialiser les messages avec le message de bienvenue
+                      setMessages([
+                        {
+                          id: 1,
+                          type: 'bot',
+                          content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
+                          feedback: null
+                        }
+                      ]);
+                      setInputValue('');
+                      setShowTyping(false);
+                      setTypewritingMessageId(null);
+                      playNotificationSound();
+                      console.log('🔄 Conversation réinitialisée avec session:', newSessionId);
+                    }}
+                    title="Réinitialiser la conversation"
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: 'white',
+                      fontSize: '16px',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    ↻
+                  </motion.button>
+
+                  {/* Bouton Fermer */}
+                  <motion.button
+                    whileHover={{ scale: 1.1, rotate: 90 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={() => setIsOpen(false)}
+                    style={{
+                      background: 'none',
                     border: 'none',
                     color: 'white',
                     fontSize: '20px',
@@ -953,6 +1019,7 @@ const App: React.FC = () => {
                 >
                   ×
                 </motion.button>
+                </div>
               </motion.div>
 
               {/* Corps du chat avec auto-scroll */}
