@@ -168,6 +168,17 @@ export function useConversation(id: string) {
   );
 }
 
+// Hook simple pour récupérer le nombre total de conversations (pour le badge de navigation)
+export function useConversationsCount() {
+  return useApi<{ total: number }>(
+    () => adminApi.getConversations({}, { page: 1, limit: 1 }).then(response => ({ total: response.total })),
+    {
+      autoLoad: true,
+      dependencies: []
+    }
+  );
+}
+
 // =============================================================================
 // HOOKS POUR LE SYSTÈME PROMPT
 // =============================================================================
