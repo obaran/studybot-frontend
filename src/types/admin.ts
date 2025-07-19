@@ -87,6 +87,9 @@ export interface ConversationFilters {
   dateTo?: string;
   search?: string;
   userIdentifier?: string;
+  userId?: string;
+  minMessages?: number;
+  maxMessages?: number;
 }
 
 // =============================================================================
