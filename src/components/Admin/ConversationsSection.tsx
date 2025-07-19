@@ -14,6 +14,12 @@ const ConversationsSection: React.FC = () => {
   // États pour la navigation du calendrier
   const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
   const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
+  
+  // États pour la sélection de fourchettes de dates
+  const [dateRangeMode, setDateRangeMode] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectingEndDate, setSelectingEndDate] = useState(false);
 
   // Fonctions de navigation du calendrier
   const goToPreviousMonth = () => {
@@ -38,6 +44,65 @@ const ConversationsSection: React.FC = () => {
     const now = new Date();
     setCurrentMonth(now.getMonth());
     setCurrentYear(now.getFullYear());
+  };
+
+  // Fonctions pour la gestion des fourchettes de dates
+  const toggleDateRangeMode = () => {
+    setDateRangeMode(!dateRangeMode);
+    // Reset des sélections
+    setSelectedDate('');
+    setStartDate('');
+    setEndDate('');
+    setSelectingEndDate(false);
+  };
+
+  const handleDateClick = (dateString: string) => {
+    if (!dateRangeMode) {
+      // Mode simple : sélection d'une seule date
+      setSelectedDate(dateString);
+      setIsCalendarOpen(false);
+    } else {
+      // Mode fourchette de dates
+      if (!startDate || selectingEndDate) {
+        // Premier clic ou sélection de la date de fin
+        if (!startDate) {
+          setStartDate(dateString);
+          setSelectingEndDate(true);
+        } else {
+          // Vérifier que la date de fin est après la date de début
+          if (dateString >= startDate) {
+            setEndDate(dateString);
+            setSelectingEndDate(false);
+            setIsCalendarOpen(false);
+          } else {
+            // Si la date de fin est avant le début, on recommence
+            setStartDate(dateString);
+            setEndDate('');
+            setSelectingEndDate(true);
+          }
+        }
+      } else {
+        // Deuxième clic pour la date de fin
+        if (dateString >= startDate) {
+          setEndDate(dateString);
+          setSelectingEndDate(false);
+          setIsCalendarOpen(false);
+        } else {
+          // Nouveau début si on clique avant la date de début
+          setStartDate(dateString);
+          setEndDate('');
+          setSelectingEndDate(true);
+        }
+      }
+    }
+  };
+
+  const clearDateSelection = () => {
+    setSelectedDate('');
+    setStartDate('');
+    setEndDate('');
+    setSelectingEndDate(false);
+    setIsCalendarOpen(false);
   };
 
   // Calculer les informations du mois actuel
@@ -67,11 +132,25 @@ const ConversationsSection: React.FC = () => {
     const newFilters: Partial<ConversationFilters> = {
       search: searchTerm || undefined,
       feedback: feedbackFilter === 'all' ? undefined : feedbackFilter,
-      dateFrom: selectedDate || undefined,
-      dateTo: selectedDate || undefined
     };
+
+    // Gestion des dates selon le mode
+    if (dateRangeMode && startDate && endDate) {
+      // Mode fourchette avec début et fin
+      newFilters.dateFrom = startDate;
+      newFilters.dateTo = endDate;
+    } else if (!dateRangeMode && selectedDate) {
+      // Mode simple avec une seule date
+      newFilters.dateFrom = selectedDate;
+      newFilters.dateTo = selectedDate;
+    } else {
+      // Aucune date sélectionnée
+      newFilters.dateFrom = undefined;
+      newFilters.dateTo = undefined;
+    }
+
     updateFilters(newFilters);
-  }, [searchTerm, feedbackFilter, selectedDate, updateFilters]);
+  }, [searchTerm, feedbackFilter, selectedDate, dateRangeMode, startDate, endDate, updateFilters]);
 
   const handleExport = async () => {
     try {
@@ -206,13 +285,34 @@ const ConversationsSection: React.FC = () => {
               }}
             >
               <span>
-                {selectedDate 
-                  ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long'
-                    })
-                  : 'Toutes les dates'}
+                {(() => {
+                  if (dateRangeMode) {
+                    if (startDate && endDate) {
+                      return `Du ${new Date(startDate + 'T00:00:00').toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short'
+                      })} au ${new Date(endDate + 'T00:00:00').toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short'
+                      })}`;
+                    } else if (startDate) {
+                      return `Début: ${new Date(startDate + 'T00:00:00').toLocaleDateString('fr-FR', {
+                        day: 'numeric',
+                        month: 'short'
+                      })} (choisir fin)`;
+                    } else {
+                      return '📅 Sélectionner une fourchette';
+                    }
+                  } else {
+                    return selectedDate 
+                      ? new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long'
+                        })
+                      : 'Toutes les dates';
+                  }
+                })()}
               </span>
             </motion.button>
             
@@ -237,13 +337,13 @@ const ConversationsSection: React.FC = () => {
             </div>
 
             {/* Bouton reset */}
-            {selectedDate && (
+            {(selectedDate || startDate || endDate) && (
               <motion.button
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedDate('');
+                  clearDateSelection();
                 }}
                 style={{
                   position: 'absolute',
@@ -262,7 +362,7 @@ const ConversationsSection: React.FC = () => {
                   color: 'white',
                   cursor: 'pointer'
                 }}
-                title="Effacer la date"
+                title="Effacer la sélection"
               >
                 ✕
               </motion.button>
@@ -355,6 +455,27 @@ const ConversationsSection: React.FC = () => {
                   </motion.button>
                 </div>
 
+                {/* Message d'aide pour le mode fourchette */}
+                {dateRangeMode && (
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '8px',
+                    background: '#fef3c7',
+                    borderRadius: '8px',
+                    marginBottom: '12px',
+                    fontSize: '12px',
+                    color: '#92400e',
+                    fontWeight: '500'
+                  }}>
+                    {!startDate 
+                      ? '🎯 Cliquez sur une date de début' 
+                      : !endDate 
+                      ? '🎯 Maintenant, cliquez sur une date de fin'
+                      : '✅ Fourchette sélectionnée'
+                    }
+                  </div>
+                )}
+
                 {/* Jours de la semaine */}
                 <div style={{
                   display: 'grid',
@@ -401,9 +522,10 @@ const ConversationsSection: React.FC = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
-                            setSelectedDate(dateString);
-                            setIsCalendarOpen(false);
-                            goToPreviousMonth();
+                            handleDateClick(dateString);
+                            if (!dateRangeMode || (dateRangeMode && startDate && !selectingEndDate)) {
+                              goToPreviousMonth();
+                            }
                           }}
                           style={{
                             width: '32px',
@@ -432,34 +554,40 @@ const ConversationsSection: React.FC = () => {
                         new Date(conv.startTime).toISOString().split('T')[0] === dateString
                       );
                       
+                      // Logique pour l'affichage des fourchettes de dates
+                      const isSelected = selectedDate === dateString;
+                      const isRangeStart = startDate === dateString;
+                      const isRangeEnd = endDate === dateString;
+                      const isInRange = dateRangeMode && startDate && endDate && 
+                        dateString >= startDate && dateString <= endDate;
+                      
                       days.push(
                         <motion.button
                           key={day}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={() => {
-                            setSelectedDate(dateString);
-                            setIsCalendarOpen(false);
-                          }}
+                          onClick={() => handleDateClick(dateString)}
                           style={{
                             width: '32px',
                             height: '32px',
                             border: 'none',
                             borderRadius: '8px',
-                            background: selectedDate === dateString 
-                              ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)' 
-                              : isToday 
-                              ? 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)' 
-                              : hasConversations 
-                              ? 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)'
-                              : 'transparent',
-                            color: selectedDate === dateString
-                              ? 'white'
-                              : isToday 
-                                ? '#1e293b'
-                                : '#64748b',
+                            background: (() => {
+                              if (isSelected) return 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)';
+                              if (isRangeStart || isRangeEnd) return 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)';
+                              if (isInRange) return 'linear-gradient(135deg, #fecaca 0%, #fca5a5 100%)';
+                              if (isToday) return 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)';
+                              if (hasConversations) return 'linear-gradient(135deg, #fef3c7 0%, #fed7aa 100%)';
+                              return 'transparent';
+                            })(),
+                            color: (() => {
+                              if (isSelected || isRangeStart || isRangeEnd) return 'white';
+                              if (isInRange) return '#7f1d1d';
+                              if (isToday) return '#1e293b';
+                              return '#64748b';
+                            })(),
                             fontSize: '13px',
-                            fontWeight: selectedDate === dateString || isToday ? '600' : '500',
+                            fontWeight: (isSelected || isRangeStart || isRangeEnd || isToday) ? '600' : '500',
                             cursor: 'pointer',
                             position: 'relative',
                             transition: 'all 0.2s ease'
@@ -473,7 +601,7 @@ const ConversationsSection: React.FC = () => {
                               right: '2px',
                               width: '4px',
                               height: '4px',
-                              backgroundColor: selectedDate === dateString ? 'white' : '#e2001a',
+                              backgroundColor: (isSelected || isRangeStart || isRangeEnd) ? 'white' : '#e2001a',
                               borderRadius: '50%'
                             }} />
                           )}
@@ -493,9 +621,10 @@ const ConversationsSection: React.FC = () => {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           onClick={() => {
-                            setSelectedDate(dateString);
-                            setIsCalendarOpen(false);
-                            goToNextMonth();
+                            handleDateClick(dateString);
+                            if (!dateRangeMode || (dateRangeMode && startDate && !selectingEndDate)) {
+                              goToNextMonth();
+                            }
                           }}
                           style={{
                             width: '32px',
@@ -564,15 +693,32 @@ const ConversationsSection: React.FC = () => {
                     >
                       📅 Aujourd'hui
                     </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={toggleDateRangeMode}
+                      style={{
+                        padding: '8px 16px',
+                        border: `1px solid ${dateRangeMode ? '#e2001a' : '#10b981'}`,
+                        borderRadius: '8px',
+                        background: dateRangeMode ? '#fef2f2' : 'white',
+                        color: dateRangeMode ? '#e2001a' : '#10b981',
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: '600'
+                      }}
+                    >
+                      {dateRangeMode ? '📅 Mode simple' : '📊 Fourchette'}
+                    </motion.button>
                   </div>
                   
-                  {selectedDate && (
+                  {(selectedDate || startDate || endDate) && (
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
-                        setSelectedDate('');
-                        setIsCalendarOpen(false);
+                        clearDateSelection();
                       }}
                       style={{
                         padding: '8px 16px',
