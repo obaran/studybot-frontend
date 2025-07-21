@@ -40,3 +40,102 @@
 .read-the-docs {
   color: #888;
 }
+
+/* =============================================================================
+   STYLES POUR LES LIENS DANS LES MESSAGES BOT
+============================================================================= */
+
+.bot-link {
+  color: #e2001a !important;
+  text-decoration: none !important;
+  font-weight: 600;
+  border-bottom: 1px solid #e2001a;
+  padding: 1px 3px;
+  border-radius: 3px;
+  transition: all 0.2s ease;
+  word-break: break-all; /* Force le retour à la ligne pour les URLs longues */
+  display: inline;
+}
+
+.bot-link:hover {
+  background-color: #fef2f2;
+  color: #b50015 !important;
+  border-bottom-color: #b50015;
+  text-decoration: none !important;
+}
+
+.bot-link:visited {
+  color: #e2001a !important;
+}
+
+/* =============================================================================
+   CORRECTION DU TEXT WRAPPING DANS LE WIDGET
+============================================================================= */
+
+/* S'assurer que le texte se wrap correctement dans les messages */
+.message-content {
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Éviter le scroll horizontal dans les conteneurs de messages */
+.chat-container {
+  overflow-x: hidden !important;
+  word-wrap: break-word;
+}
+
+.chat-messages {
+  overflow-x: hidden !important;
+  width: 100%;
+}
+
+/* =============================================================================
+   STYLES POUR LES HANDLES DE REDIMENSIONNEMENT DU WIDGET
+============================================================================= */
+
+/* Styles pour les curseurs de redimensionnement */
+.resize-handle {
+  position: absolute;
+  background: transparent;
+  transition: background-color 0.2s ease;
+  z-index: 10;
+}
+
+.resize-handle:hover {
+  background-color: rgba(226, 0, 26, 0.1);
+}
+
+/* Animation lors du redimensionnement */
+.widget-resizing {
+  user-select: none;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px #e2001a;
+}
+
+/* Indicateur visuel du coin de redimensionnement */
+.resize-corner::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-bottom: 8px solid rgba(226, 0, 26, 0.6);
+}
+
+/* =============================================================================
+   CURSEURS PERSONNALISÉS POUR LE REDIMENSIONNEMENT
+============================================================================= */
+
+.cursor-se-resize { cursor: se-resize !important; }
+.cursor-s-resize { cursor: s-resize !important; }
+.cursor-e-resize { cursor: e-resize !important; }
+.cursor-ne-resize { cursor: ne-resize !important; }
+.cursor-n-resize { cursor: n-resize !important; }
+.cursor-nw-resize { cursor: nw-resize !important; }
+.cursor-w-resize { cursor: w-resize !important; }
+.cursor-sw-resize { cursor: sw-resize !important; }

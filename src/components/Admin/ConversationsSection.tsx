@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useConversations } from '../../hooks/useAdminApi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useConversations, useConversation } from '../../hooks/useAdminApi';
 import type { ConversationFilters } from '../../types/admin';
 
 const ConversationsSection: React.FC = () => {
@@ -9,6 +9,7 @@ const ConversationsSection: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [selectedConversationId, setSelectedConversationId] = useState<string>('');
   const [showConversationModal, setShowConversationModal] = useState(false);
   
   // États pour la navigation du calendrier
@@ -20,6 +21,13 @@ const ConversationsSection: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectingEndDate, setSelectingEndDate] = useState(false);
+
+  // NOUVEAU : États pour la recherche combinée avancée
+  const [isAdvancedSearch, setIsAdvancedSearch] = useState(false);
+  const [advancedFilters, setAdvancedFilters] = useState({
+    textQuery: '',
+    feedbackType: ''
+  });
 
   // Fonctions de navigation du calendrier
   const goToPreviousMonth = () => {
@@ -44,6 +52,46 @@ const ConversationsSection: React.FC = () => {
     const now = new Date();
     setCurrentMonth(now.getMonth());
     setCurrentYear(now.getFullYear());
+  };
+
+  // NOUVEAU : Fonctions pour la recherche combinée avancée
+  const toggleAdvancedSearch = () => {
+    setIsAdvancedSearch(!isAdvancedSearch);
+    if (!isAdvancedSearch) {
+      // Reset des filtres simples quand on passe en mode avancé
+      setSearchTerm('');
+      setFeedbackFilter('all');
+      setSelectedDate('');
+      setStartDate('');
+      setEndDate('');
+    } else {
+      // Reset des filtres avancés quand on revient en mode simple
+      setAdvancedFilters({
+        textQuery: '',
+        feedbackType: ''
+      });
+    }
+  };
+
+  const updateAdvancedFilter = (key: string, value: any) => {
+    setAdvancedFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const resetAllFilters = () => {
+    setSearchTerm('');
+    setFeedbackFilter('all');
+    setSelectedDate('');
+    setStartDate('');
+    setEndDate('');
+    setAdvancedFilters({
+      textQuery: '',
+      feedbackType: ''
+    });
+    setDateRangeMode(false);
+    setSelectingEndDate(false);
   };
 
   // Fonctions pour la gestion des fourchettes de dates
@@ -127,19 +175,57 @@ const ConversationsSection: React.FC = () => {
     refetch
   } = useConversations();
 
-  // Mettre à jour les filtres quand les états locaux changent
-  React.useEffect(() => {
-    const newFilters: Partial<ConversationFilters> = {
-      search: searchTerm || undefined,
-      feedback: feedbackFilter === 'all' ? undefined : feedbackFilter,
-    };
+  // Hook pour récupérer les détails d'une conversation spécifique
+  const {
+    data: conversationDetails,
+    loading: detailsLoading,
+    error: detailsError
+  } = useConversation(selectedConversationId);
 
-    // Gestion des dates selon le mode
+  // Debounce pour éviter trop de requêtes
+  const [debouncedSearch, setDebouncedSearch] = React.useState('');
+  const [debouncedAdvancedSearch, setDebouncedAdvancedSearch] = React.useState('');
+
+  // Debouncer pour le terme de recherche simple
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+
+  // Debouncer pour la recherche avancée
+  React.useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedAdvancedSearch(advancedFilters.textQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [advancedFilters.textQuery]);
+
+  // Mettre à jour les filtres de façon optimisée
+  React.useEffect(() => {
+    let newFilters: Partial<ConversationFilters> = {};
+
+    if (isAdvancedSearch) {
+      // Mode recherche avancée - filtres combinés
+      newFilters = {
+        search: debouncedAdvancedSearch || undefined,
+        feedback: (advancedFilters.feedbackType as 'positive' | 'negative' | 'none' | 'all') || undefined,
+      };
+    } else {
+      // Mode recherche simple
+      newFilters = {
+        search: debouncedSearch || undefined,
+        feedback: feedbackFilter === 'all' ? undefined : feedbackFilter,
+      };
+    }
+
+    // Gestion des dates - logique unifiée pour tous les modes
     if (dateRangeMode && startDate && endDate) {
       // Mode fourchette avec début et fin
       newFilters.dateFrom = startDate;
       newFilters.dateTo = endDate;
-    } else if (!dateRangeMode && selectedDate) {
+    } else if (selectedDate) {
       // Mode simple avec une seule date
       newFilters.dateFrom = selectedDate;
       newFilters.dateTo = selectedDate;
@@ -150,7 +236,7 @@ const ConversationsSection: React.FC = () => {
     }
 
     updateFilters(newFilters);
-  }, [searchTerm, feedbackFilter, selectedDate, dateRangeMode, startDate, endDate, updateFilters]);
+  }, [debouncedSearch, debouncedAdvancedSearch, feedbackFilter, selectedDate, dateRangeMode, startDate, endDate, updateFilters, isAdvancedSearch, advancedFilters.feedbackType]);
 
   const handleExport = async () => {
     try {
@@ -161,15 +247,48 @@ const ConversationsSection: React.FC = () => {
   };
 
   if (error) {
+    const errorMessage = error?.message || (error as any)?.response?.data?.message || 'Une erreur est survenue';
+    const isRateLimited = errorMessage.includes('429') || errorMessage.includes('Too Many Requests');
+    
     return (
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        style={{ padding: '20px', textAlign: 'center', color: 'red' }}
+        style={{ 
+          padding: '20px', 
+          textAlign: 'center', 
+          color: isRateLimited ? '#f59e0b' : '#dc2626',
+          background: isRateLimited ? '#fef3c7' : '#fee2e2',
+          borderRadius: '10px',
+          border: `2px solid ${isRateLimited ? '#f59e0b' : '#dc2626'}`
+        }}
       >
-        <h3>Erreur de chargement</h3>
-        <p>{error?.toString()}</p>
-        <button onClick={refetch}>Réessayer</button>
+        <h3>
+          {isRateLimited ? '⏳ Trop de requêtes' : '❌ Erreur de chargement'}
+        </h3>
+        <p style={{ margin: '10px 0', fontSize: '14px' }}>
+          {isRateLimited 
+            ? 'Veuillez attendre quelques secondes avant de réessayer'
+            : errorMessage
+          }
+        </p>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={refetch}
+          style={{
+            padding: '10px 20px',
+            borderRadius: '8px',
+            border: 'none',
+            background: isRateLimited ? '#f59e0b' : '#dc2626',
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: '600',
+            cursor: 'pointer'
+          }}
+        >
+          Réessayer
+        </motion.button>
       </motion.div>
     );
   }
@@ -248,6 +367,280 @@ const ConversationsSection: React.FC = () => {
             )}
           </div>
         </div>
+
+        {/* Toggle Recherche Avancée */}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <motion.button
+            onClick={toggleAdvancedSearch}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            style={{
+              padding: '8px 16px',
+              borderRadius: '8px',
+              border: '1px solid #e2e8f0',
+              background: isAdvancedSearch 
+                ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)' 
+                : 'white',
+              color: isAdvancedSearch ? 'white' : '#64748b',
+              fontSize: '13px',
+              fontWeight: '600',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            <span>{isAdvancedSearch ? '🔧' : '⚡'}</span>
+            {isAdvancedSearch ? 'Recherche Simple' : 'Recherche Avancée'}
+          </motion.button>
+        </div>
+
+        {/* Interface de recherche avancée */}
+        <AnimatePresence>
+          {isAdvancedSearch && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.3 }}
+              style={{
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+                borderRadius: '12px',
+                padding: '20px',
+                marginBottom: '16px',
+                border: '1px solid #e2e8f0'
+              }}
+            >
+              <h4 style={{
+                fontSize: '16px',
+                fontWeight: '700',
+                color: '#1e293b',
+                margin: '0 0 16px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                🔧 Recherche Combinée Avancée
+              </h4>
+              
+              {/* Layout des filtres en colonnes */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '20px'
+              }}>
+                {/* Recherche textuelle - pleine largeur */}
+                <div style={{ width: '100%' }}>
+                  <label style={{ 
+                    fontSize: '13px', 
+                    fontWeight: '700', 
+                    color: '#1e293b', 
+                    marginBottom: '8px', 
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}>
+                    📝 Recherche dans le contenu
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: impression documents, campus, restaurant..."
+                    value={advancedFilters.textQuery}
+                    onChange={(e) => updateAdvancedFilter('textQuery', e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      borderRadius: '10px',
+                      border: '2px solid #e2e8f0',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s ease',
+                      fontFamily: 'Inter, sans-serif',
+                      boxSizing: 'border-box'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
+                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+                  />
+                </div>
+
+                {/* Deuxième ligne : Feedback et Période */}
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '20px',
+                  width: '100%'
+                }}>
+                  {/* Type de feedback */}
+                  <div>
+                    <label style={{ 
+                      fontSize: '13px', 
+                      fontWeight: '700', 
+                      color: '#1e293b', 
+                      marginBottom: '8px', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      👍 Type de feedback
+                    </label>
+                    <select
+                      value={advancedFilters.feedbackType}
+                      onChange={(e) => updateAdvancedFilter('feedbackType', e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '12px 16px',
+                        borderRadius: '10px',
+                        border: '2px solid #e2e8f0',
+                        fontSize: '14px',
+                        outline: 'none',
+                        background: 'white',
+                        fontFamily: 'Inter, sans-serif',
+                        cursor: 'pointer',
+                        boxSizing: 'border-box'
+                      }}
+                    >
+                      <option value="">Tous les feedbacks</option>
+                      <option value="positive">👍 Positif uniquement</option>
+                      <option value="negative">👎 Négatif uniquement</option>
+                      <option value="none">⭕ Sans feedback</option>
+                    </select>
+                  </div>
+
+                  {/* Sélection de dates */}
+                  <div>
+                    <label style={{ 
+                      fontSize: '13px', 
+                      fontWeight: '700', 
+                      color: '#1e293b', 
+                      marginBottom: '8px', 
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      📅 Période
+                    </label>
+                    <div style={{ position: 'relative' }}>
+                      <motion.button
+                        onClick={() => setIsCalendarOpen(!isCalendarOpen)}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.99 }}
+                        style={{
+                          width: '100%',
+                          padding: '12px 16px',
+                          borderRadius: '10px',
+                          border: '2px solid #e2e8f0',
+                          fontSize: '14px',
+                          outline: 'none',
+                          background: 'white',
+                          fontFamily: 'Inter, sans-serif',
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          transition: 'border-color 0.2s ease',
+                          boxSizing: 'border-box'
+                        }}
+                        onMouseEnter={(e) => (e.target as HTMLElement).style.borderColor = '#e2001a'}
+                        onMouseLeave={(e) => (e.target as HTMLElement).style.borderColor = '#e2e8f0'}
+                      >
+                        <span style={{ fontSize: '14px', color: '#64748b' }}>
+                          {(() => {
+                            if (dateRangeMode && startDate && endDate) {
+                              return `${new Date(startDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} - ${new Date(endDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}`;
+                            } else if (selectedDate) {
+                              return new Date(selectedDate + 'T00:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+                            } else {
+                              return 'Toutes les dates';
+                            }
+                          })()}
+                        </span>
+                        <span style={{ fontSize: '12px', color: '#94a3b8' }}>📅</span>
+                      </motion.button>
+                      
+                      {/* Bouton reset dates */}
+                      {(selectedDate || startDate || endDate) && (
+                        <motion.button
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            clearDateSelection();
+                          }}
+                          style={{
+                            position: 'absolute',
+                            right: '30px',
+                            top: '50%',
+                            transform: 'translateY(-50%)',
+                            width: '18px',
+                            height: '18px',
+                            background: '#64748b',
+                            border: 'none',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '10px',
+                            color: 'white',
+                            cursor: 'pointer'
+                          }}
+                          title="Effacer la sélection"
+                        >
+                          ✕
+                        </motion.button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Boutons d'action */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px',
+                marginTop: '16px',
+                paddingTop: '16px',
+                borderTop: '1px solid #e2e8f0'
+              }}>
+                <button
+                  onClick={resetAllFilters}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: '1px solid #d1d5db',
+                    background: 'white',
+                    color: '#64748b',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔄 Réinitialiser
+                </button>
+                <button
+                  onClick={() => {
+                    // Les filtres sont appliqués automatiquement via useEffect
+                    console.log('Filtres appliqués:', advancedFilters);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '6px',
+                    border: 'none',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    color: 'white',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  🔍 Appliquer les filtres
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Ligne 2: Filtres */}
         <div style={{
@@ -678,7 +1071,10 @@ const ConversationsSection: React.FC = () => {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
+                        const today = new Date();
+                        const todayString = today.toISOString().split('T')[0]; // Format: YYYY-MM-DD
                         goToCurrentMonth();
+                        handleDateClick(todayString);
                       }}
                       style={{
                         padding: '8px 16px',
@@ -779,14 +1175,100 @@ const ConversationsSection: React.FC = () => {
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}
       >
-        <h3 style={{
-          fontSize: '20px',
-          fontWeight: '700',
-          color: '#1e293b',
-          margin: '0 0 24px 0'
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '24px'
         }}>
-          Conversations ({conversations?.length || 0})
-        </h3>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: '700',
+            color: '#1e293b',
+            margin: '0'
+          }}>
+            Conversations ({conversations?.length || 0})
+          </h3>
+          
+          <motion.button
+            whileHover={{ 
+              scale: 1.05, 
+              y: -2,
+              boxShadow: '0 8px 25px rgba(226, 0, 26, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2)'
+            }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => refetch()}
+            disabled={loading}
+            style={{
+              padding: '14px 20px',
+              background: loading 
+                ? 'linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%)'
+                : 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)',
+              color: loading ? '#6c757d' : '#e2001a',
+              border: loading 
+                ? '2px solid #dee2e6' 
+                : '2px solid #e2001a',
+              borderRadius: '10px',
+              fontSize: '14px',
+              fontWeight: '600',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              boxShadow: loading 
+                ? '0 2px 8px rgba(108, 117, 125, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.1)'
+                : '0 4px 15px rgba(226, 0, 26, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              backdropFilter: 'blur(10px)',
+              position: 'relative',
+              overflow: 'hidden'
+            }}
+            onMouseOver={(e) => {
+              if (!loading) {
+                e.currentTarget.style.background = 'linear-gradient(145deg, #fef2f2 0%, #ffffff 100%)';
+                e.currentTarget.style.borderColor = '#b50015';
+                e.currentTarget.style.color = '#b50015';
+              }
+            }}
+            onMouseOut={(e) => {
+              if (!loading) {
+                e.currentTarget.style.background = 'linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%)';
+                e.currentTarget.style.borderColor = '#e2001a';
+                e.currentTarget.style.color = '#e2001a';
+              }
+            }}
+          >
+            {/* Effet de brillance subtile */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: '-100%',
+              width: '100%',
+              height: '100%',
+              background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent)',
+              transition: 'left 0.6s ease',
+              pointerEvents: 'none'
+            }} />
+            
+            <motion.span 
+              style={{
+                display: 'inline-block',
+                fontSize: '16px',
+                animation: loading ? 'spin 1s linear infinite' : 'none'
+              }}
+              animate={loading ? { rotate: 360 } : { rotate: 0 }}
+              transition={loading ? { duration: 1, repeat: Infinity, ease: "linear" } : { duration: 0.3 }}
+            >
+              {loading ? '⟳' : '↻'}
+            </motion.span>
+            <span style={{ 
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              letterSpacing: '0.25px'
+            }}>
+              {loading ? 'Actualisation...' : 'Actualiser'}
+            </span>
+          </motion.button>
+        </div>
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '60px 20px' }}>
@@ -836,6 +1318,7 @@ const ConversationsSection: React.FC = () => {
                 }}
                 onClick={() => {
                   setSelectedConversation(conversation);
+                  setSelectedConversationId(conversation.sessionId);
                   setShowConversationModal(true);
                 }}
                 style={{
@@ -866,7 +1349,7 @@ const ConversationsSection: React.FC = () => {
                   flexShrink: 0,
                   boxShadow: '0 8px 24px rgba(102, 126, 234, 0.3)'
                 }}>
-                  {conversation.userId?.charAt(0)?.toUpperCase() || 'U'}
+                  👤
                 </div>
 
                 {/* Contenu de la conversation */}
@@ -904,22 +1387,41 @@ const ConversationsSection: React.FC = () => {
                         </span>
                                                  {(() => {
                            const feedbackArray = conversation.feedback || [];
-                           const hasPositive = feedbackArray.some((f: any) => f.type === 'positive');
-                           const hasNegative = feedbackArray.some((f: any) => f.type === 'negative');
+                           const positiveCount = feedbackArray.filter((f: any) => f.type === 'positive').length;
+                           const negativeCount = feedbackArray.filter((f: any) => f.type === 'negative').length;
                            
-                           if (hasPositive || hasNegative) {
-                             const feedbackType = hasPositive ? 'positive' : 'negative';
+                           if (positiveCount > 0 || negativeCount > 0) {
+                             const hasBoth = positiveCount > 0 && negativeCount > 0;
+                             
                              return (
-                               <span style={{
-                                 fontSize: '13px',
-                                 color: feedbackType === 'positive' ? '#10b981' : '#ef4444',
-                                 fontWeight: '600',
-                                 background: feedbackType === 'positive' ? '#ecfdf5' : '#fef2f2',
-                                 padding: '4px 8px',
-                                 borderRadius: '6px'
-                               }}>
-                                 {feedbackType === 'positive' ? '👍 Positif' : '👎 Négatif'}
-                               </span>
+                               <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                 {positiveCount > 0 && (
+                                   <span style={{
+                                     fontSize: '13px',
+                                     color: '#10b981',
+                                     fontWeight: '600',
+                                     background: '#ecfdf5',
+                                     padding: '4px 8px',
+                                     borderRadius: '6px',
+                                     border: '1px solid #10b981'
+                                   }}>
+                                     👍 {positiveCount}
+                                   </span>
+                                 )}
+                                 {negativeCount > 0 && (
+                                   <span style={{
+                                     fontSize: '13px',
+                                     color: '#ef4444',
+                                     fontWeight: '600',
+                                     background: '#fef2f2',
+                                     padding: '4px 8px',
+                                     borderRadius: '6px',
+                                     border: '1px solid #ef4444'
+                                   }}>
+                                     👎 {negativeCount}
+                                   </span>
+                                 )}
+                               </div>
                              );
                            }
                            return null;
@@ -929,14 +1431,19 @@ const ConversationsSection: React.FC = () => {
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                       {(() => {
                         const feedbackArray = conversation.feedback || [];
-                        const hasPositive = feedbackArray.some((f: any) => f.type === 'positive');
-                        const hasNegative = feedbackArray.some((f: any) => f.type === 'negative');
+                        const positiveCount = feedbackArray.filter((f: any) => f.type === 'positive').length;
+                        const negativeCount = feedbackArray.filter((f: any) => f.type === 'negative').length;
                         
-                        if (hasPositive || hasNegative) {
+                        if (positiveCount > 0 || negativeCount > 0) {
                           return (
-                            <span style={{ fontSize: '20px' }}>
-                              {hasPositive ? '👍' : '👎'}
-                            </span>
+                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                              {positiveCount > 0 && (
+                                <span style={{ fontSize: '18px' }}>👍</span>
+                              )}
+                              {negativeCount > 0 && (
+                                <span style={{ fontSize: '18px' }}>👎</span>
+                              )}
+                            </div>
                           );
                         }
                         return null;
@@ -978,6 +1485,7 @@ const ConversationsSection: React.FC = () => {
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedConversation(conversation);
+                      setSelectedConversationId(conversation.sessionId);
                       setShowConversationModal(true);
                     }}
                     style={{
@@ -1124,15 +1632,17 @@ const ConversationsSection: React.FC = () => {
                   </h2>
                   <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
                     <span style={{ 
-                      fontSize: '14px', 
-                      color: '#64748b', 
-                      fontWeight: '600',
-                      background: 'white',
-                      padding: '6px 12px',
-                      borderRadius: '8px',
-                      border: '1px solid #e2e8f0'
-                    }}>
-                      🆔 Session: {selectedConversation.sessionId}
+                      fontSize: '12px', 
+                      color: '#94a3b8', 
+                      fontWeight: '500',
+                      background: '#f8fafc',
+                      padding: '4px 8px',
+                      borderRadius: '6px',
+                      border: '1px solid #f1f5f9',
+                      cursor: 'pointer'
+                    }}
+                    title={`Session complète: ${selectedConversation.sessionId}`}>
+                      🆔 {selectedConversation.sessionId?.slice(-6) || 'N/A'}
                     </span>
                     <span style={{ 
                       fontSize: '14px', 
@@ -1154,8 +1664,56 @@ const ConversationsSection: React.FC = () => {
                       borderRadius: '8px',
                       border: '1px solid #e2e8f0'
                     }}>
-                      💬 {selectedConversation.messages?.length || 0} messages
+                      💬 {conversationDetails?.messages?.length || selectedConversation.messageCount || 0} messages
                     </span>
+                    {(() => {
+                      const feedbackArray = conversationDetails?.feedback || selectedConversation.feedback || [];
+                      const totalFeedbacks = feedbackArray.length;
+                      const positiveFeedbacks = feedbackArray.filter((f: any) => f.type === 'positive').length;
+                      const negativeFeedbacks = feedbackArray.filter((f: any) => f.type === 'negative').length;
+                      
+                      if (totalFeedbacks > 0) {
+                        const hasBothTypes = positiveFeedbacks > 0 && negativeFeedbacks > 0;
+                        
+                        return (
+                          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                            {positiveFeedbacks > 0 && (
+                              <span style={{ 
+                                fontSize: '14px', 
+                                color: '#10b981', 
+                                fontWeight: '600',
+                                background: '#ecfdf5',
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid #10b981',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                👍 {positiveFeedbacks}
+                              </span>
+                            )}
+                            {negativeFeedbacks > 0 && (
+                              <span style={{ 
+                                fontSize: '14px', 
+                                color: '#ef4444', 
+                                fontWeight: '600',
+                                background: '#fef2f2',
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: '1px solid #ef4444',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                              }}>
+                                👎 {negativeFeedbacks}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
                   </div>
                 </div>
                 <motion.button
@@ -1190,8 +1748,40 @@ const ConversationsSection: React.FC = () => {
               padding: '24px 32px',
               background: 'linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%)'
             }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {selectedConversation.messages?.map((message: any, index: number) => (
+              {detailsLoading ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '4px solid #f1f5f9',
+                      borderTop: '4px solid #e2001a',
+                      borderRadius: '50%',
+                      margin: '0 auto 20px'
+                    }}
+                  />
+                  <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#1e293b', margin: '0 0 8px 0' }}>
+                    Chargement des messages...
+                  </h4>
+                  <p style={{ color: '#64748b', margin: 0 }}>
+                    Récupération du détail de la conversation
+                  </p>
+                </div>
+              ) : detailsError ? (
+                <div style={{ textAlign: 'center', padding: '60px 20px' }}>
+                  <div style={{ fontSize: '48px', marginBottom: '16px' }}>❌</div>
+                  <h4 style={{ fontSize: '18px', fontWeight: '600', color: '#ef4444', margin: '0 0 8px 0' }}>
+                    Erreur de chargement
+                  </h4>
+                  <p style={{ color: '#64748b', margin: 0 }}>
+                    Impossible de charger les détails de la conversation
+                  </p>
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  {(conversationDetails?.messages || [])?.map((message: any, index: number) => (
                   <motion.div
                     key={message.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -1281,6 +1871,67 @@ const ConversationsSection: React.FC = () => {
                       </div>
                     </div>
 
+                    {/* Feedbacks détaillés pour ce message */}
+                    {(() => {
+                      const feedbackArray = conversationDetails?.feedback || selectedConversation.feedback || [];
+                      const messageFeedbacks = feedbackArray.filter((f: any) => f.messageId === message.id);
+                      
+                      return messageFeedbacks.map((feedback: any, idx: number) => (
+                        <motion.div
+                          key={`feedback-${idx}`}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.2 }}
+                          style={{
+                            maxWidth: '70%',
+                            marginLeft: message.type === 'user' ? 'auto' : '60px',
+                            marginRight: message.type === 'user' ? '0' : 'auto',
+                            padding: '12px 16px',
+                            borderRadius: '12px',
+                            background: feedback.type === 'positive' 
+                              ? 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)'
+                              : 'linear-gradient(135deg, #fef2f2 0%, #fecaca 100%)',
+                            border: `2px solid ${feedback.type === 'positive' ? '#10b981' : '#ef4444'}`,
+                            boxShadow: `0 4px 12px ${feedback.type === 'positive' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
+                            marginTop: '8px'
+                          }}
+                        >
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            marginBottom: '6px'
+                          }}>
+                            <span style={{
+                              fontSize: '16px'
+                            }}>
+                              {feedback.type === 'positive' ? '👍' : '👎'}
+                            </span>
+                            <span style={{
+                              fontSize: '12px',
+                              fontWeight: '700',
+                              color: feedback.type === 'positive' ? '#059669' : '#dc2626',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.5px'
+                            }}>
+                              Feedback {feedback.type === 'positive' ? 'positif' : 'négatif'}
+                            </span>
+                          </div>
+                          {feedback.comment && (
+                            <p style={{
+                              margin: '0',
+                              fontSize: '13px',
+                              color: feedback.type === 'positive' ? '#059669' : '#dc2626',
+                              fontStyle: 'italic',
+                              lineHeight: '1.4'
+                            }}>
+                              "{feedback.comment}"
+                            </p>
+                          )}
+                        </motion.div>
+                      ));
+                    })()}
+
                     {/* Avatar utilisateur */}
                     {message.type === 'user' && (
                       <div style={{
@@ -1302,7 +1953,8 @@ const ConversationsSection: React.FC = () => {
                     )}
                   </motion.div>
                 ))}
-              </div>
+                </div>
+              )}
             </div>
           </motion.div>
         </motion.div>

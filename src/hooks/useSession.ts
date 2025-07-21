@@ -34,7 +34,7 @@ export const useSession = () => {
         // Vérifier si la session n'est pas expirée
         if (!isSessionExpired(session)) {
           setSessionId(session.id);
-          setIsNewSession(false);
+          setIsNewSession(false); // ✅ Session existante = pas nouvelle
           
           // Mettre à jour l'activité
           const updatedSession: SessionData = {
@@ -43,7 +43,7 @@ export const useSession = () => {
           };
           localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(updatedSession));
           
-          console.log('📡 Session restaurée:', session.id);
+          console.log('📡 Session restaurée (persistante):', session.id);
           return;
         } else {
           console.log('⏰ Session expirée, création d\'une nouvelle session');

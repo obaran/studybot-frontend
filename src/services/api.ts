@@ -171,6 +171,41 @@ export class StudyBotAPI {
       throw error;
     }
   }
+
+  /**
+   * Envoyer un feedback utilisateur
+   */
+  static async submitFeedback(feedbackData: {
+    sessionId: string;
+    messageId: string;
+    type: 'positive' | 'negative';
+    comment?: string;
+  }): Promise<{
+    feedbackId: string;
+    sessionId: string;
+    messageId: string;
+    type: 'positive' | 'negative';
+    comment?: string;
+  }> {
+    try {
+      const response = await api.post('/chat/feedback', feedbackData);
+      
+      if (response.data.success && response.data.data) {
+        return response.data.data;
+      } else {
+        throw new Error(response.data.error?.message || 'Feedback submission failed');
+      }
+    } catch (error) {
+      console.error('❌ Erreur API submitFeedback:', error);
+      
+      if (axios.isAxiosError(error)) {
+        const message = error.response?.data?.error?.message || error.message;
+        throw new Error(`Erreur lors de l'envoi du feedback: ${message}`);
+      }
+      
+      throw error;
+    }
+  }
 }
 
 // Configuration pour le développement

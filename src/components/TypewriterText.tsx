@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
+import { formatBotMessage } from '../utils/textUtils';
 
 interface TypewriterTextProps {
   text: string;
   speed?: number; // millisecondes entre chaque caractère
   onComplete?: () => void;
+  enableLinks?: boolean; // Pour activer la transformation des liens
 }
 
 const TypewriterText: React.FC<TypewriterTextProps> = ({ 
   text, 
   speed = 6, 
-  onComplete 
+  onComplete,
+  enableLinks = false
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -38,9 +41,16 @@ const TypewriterText: React.FC<TypewriterTextProps> = ({
     setCurrentIndex(0);
   }, [text]);
 
+  // Formatage du texte avec liens si activé
+  const formattedDisplayedText = enableLinks ? formatBotMessage(displayedText) : displayedText;
+
   return (
     <span style={{ whiteSpace: 'pre-line' }}>
-      {displayedText}
+      {enableLinks ? (
+        <span dangerouslySetInnerHTML={{ __html: formattedDisplayedText }} />
+      ) : (
+        displayedText
+      )}
       {currentIndex < text.length && (
         <span 
           style={{

@@ -5,6 +5,7 @@ import StudyBotAPI, { type ChatRequest } from './services/api';
 import TypewriterText from './components/TypewriterText';
 import AdminDashboard from './components/admin/AdminDashboard';
 import { useSession } from './hooks/useSession';
+import { formatBotMessage, containsLinks } from './utils/textUtils';
 
 // 🎯 Assets emlyon officiels (depuis flowise-design-reference.js)
 const EMLYON_ASSETS = {
@@ -16,7 +17,7 @@ const EMLYON_ASSETS = {
 
 // 💬 Types pour les messages
 interface BaseMessage {
-  id: number;
+  id: string | number; // Support des IDs serveur (string) et locaux (number)
   content: string;
 }
 
@@ -216,9 +217,9 @@ const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [typewritingMessageId, setTypewritingMessageId] = useState<number | null>(null);
+  const [typewritingMessageId, setTypewritingMessageId] = useState<string | number | null>(null);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [feedbackMessageId, setFeedbackMessageId] = useState<number | null>(null);
+  const [feedbackMessageId, setFeedbackMessageId] = useState<string | number | null>(null);
   const [feedbackComment, setFeedbackComment] = useState('');
   const [feedbackType, setFeedbackType] = useState<'positive' | 'negative' | null>(null);
   const { playSendSound, playReceiveSound, playNotificationSound } = useSounds();
@@ -239,20 +240,70 @@ const App: React.FC = () => {
     }
   ]);
 
-  // 🔄 Réinitialiser les messages si nouvelle session
+  // 🔄 Gestion des messages selon le type de session
   useEffect(() => {
-    if (isNewSession && sessionId) {
+    if (!sessionId) return;
+
+    const messagesKey = `studybot_messages_${sessionId}`;
+    
+    if (isNewSession) {
+      // Nouvelle session : réinitialiser avec message de bienvenue
       console.log('🆕 Nouvelle session détectée, réinitialisation des messages');
-      setMessages([
+      const welcomeMessages = [
         {
           id: 1,
-          type: 'bot',
+          type: 'bot' as const,
           content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
           feedback: null
         }
-      ]);
+      ];
+      setMessages(welcomeMessages);
+      localStorage.setItem(messagesKey, JSON.stringify(welcomeMessages));
+    } else {
+      // Session existante : restaurer les messages
+      try {
+        const savedMessages = localStorage.getItem(messagesKey);
+        if (savedMessages) {
+          const parsedMessages = JSON.parse(savedMessages);
+          setMessages(parsedMessages);
+          console.log('📡 Messages restaurés pour session:', sessionId, '- Nb:', parsedMessages.length);
+        } else {
+          // Aucun message sauvé : commencer avec bienvenue
+          const welcomeMessages = [
+            {
+              id: 1,
+              type: 'bot' as const,
+              content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
+              feedback: null
+            }
+          ];
+          setMessages(welcomeMessages);
+          localStorage.setItem(messagesKey, JSON.stringify(welcomeMessages));
+        }
+      } catch (error) {
+        console.error('❌ Erreur restauration messages:', error);
+        // Fallback: message de bienvenue
+        const welcomeMessages = [
+          {
+            id: 1,
+            type: 'bot' as const,
+            content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
+            feedback: null
+          }
+        ];
+        setMessages(welcomeMessages);
+      }
     }
   }, [isNewSession, sessionId]);
+
+  // 💾 Sauvegarde automatique des messages à chaque changement
+  useEffect(() => {
+    if (sessionId && messages.length > 0) {
+      const messagesKey = `studybot_messages_${sessionId}`;
+      localStorage.setItem(messagesKey, JSON.stringify(messages));
+      console.log('💾 Messages sauvegardés:', messages.length, 'pour session:', sessionId);
+    }
+  }, [messages, sessionId]);
 
   // 📜 Auto-scroll vers le bas quand messages changent
   const scrollToBottom = useCallback((smooth: boolean = true) => {
@@ -506,9 +557,9 @@ const App: React.FC = () => {
       clearTimeout(typingTimeout);
       setShowTyping(false);
       
-      // Créer le message bot avec la réponse API
+      // Créer le message bot avec la réponse API et l'ID serveur
       const botMessage: BotMessage = {
-        id: Date.now() + 1,
+        id: apiResponse.messageId, // Utiliser l'ID retourné par le serveur
         type: 'bot',
         content: apiResponse.response,
         feedback: null
@@ -568,7 +619,7 @@ const App: React.FC = () => {
   }, [handleSendMessage]);
 
   // 👍👎 Gestion du feedback
-  const handleFeedback = useCallback((messageId: number, type: 'positive' | 'negative') => {
+  const handleFeedback = useCallback((messageId: string | number, type: 'positive' | 'negative') => {
     setFeedbackMessageId(messageId);
     setFeedbackType(type);
     setShowFeedbackModal(true);
@@ -576,34 +627,81 @@ const App: React.FC = () => {
   }, [playNotificationSound]);
 
   // 💬 Envoyer feedback avec commentaire
-  const submitFeedback = useCallback(() => {
-    if (feedbackMessageId === null || feedbackType === null) return;
+  const submitFeedback = useCallback(async () => {
+    if (feedbackMessageId === null || feedbackType === null || !sessionId) return;
 
-    setMessages(prev => prev.map(msg => {
-      if (msg.id === feedbackMessageId && msg.type === 'bot') {
-        return {
-          ...msg,
-          feedback: {
-            type: feedbackType,
-            comment: feedbackComment.trim() || undefined
-          }
-        };
-      }
-      return msg;
-    }));
+    try {
+      // Envoyer le feedback au serveur
+      await StudyBotAPI.submitFeedback({
+        sessionId,
+        messageId: typeof feedbackMessageId === 'string' ? feedbackMessageId : feedbackMessageId.toString(),
+        type: feedbackType,
+        comment: feedbackComment.trim() || undefined
+      });
 
-    // Sauvegarder dans localStorage pour le futur dashboard
-    const feedbackData = {
-      messageId: feedbackMessageId,
-      type: feedbackType,
-      comment: feedbackComment.trim(),
-      timestamp: new Date().toISOString(),
-      message: messages.find(m => m.id === feedbackMessageId)?.content
-    };
+      // Mettre à jour l'affichage local
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === feedbackMessageId && msg.type === 'bot') {
+          return {
+            ...msg,
+            feedback: {
+              type: feedbackType,
+              comment: feedbackComment.trim() || undefined
+            }
+          };
+        }
+        return msg;
+      }));
 
-    const existingFeedbacks = JSON.parse(localStorage.getItem('studybot-feedbacks') || '[]');
-    existingFeedbacks.push(feedbackData);
-    localStorage.setItem('studybot-feedbacks', JSON.stringify(existingFeedbacks));
+      // Conserver aussi dans localStorage comme backup
+      const feedbackData = {
+        messageId: feedbackMessageId,
+        type: feedbackType,
+        comment: feedbackComment.trim(),
+        timestamp: new Date().toISOString(),
+        message: messages.find(m => m.id === feedbackMessageId)?.content,
+        sessionId: sessionId,
+        synced: true // Marqueur indiquant que c'est synchronisé avec le serveur
+      };
+
+      const existingFeedbacks = JSON.parse(localStorage.getItem('studybot-feedbacks') || '[]');
+      existingFeedbacks.push(feedbackData);
+      localStorage.setItem('studybot-feedbacks', JSON.stringify(existingFeedbacks));
+
+      console.log('✅ Feedback envoyé avec succès au serveur');
+      
+    } catch (error) {
+      console.error('❌ Erreur envoi feedback:', error);
+      
+      // En cas d'erreur, sauvegarder quand même en localStorage avec flag non-synchronisé
+      const feedbackData = {
+        messageId: feedbackMessageId,
+        type: feedbackType,
+        comment: feedbackComment.trim(),
+        timestamp: new Date().toISOString(),
+        message: messages.find(m => m.id === feedbackMessageId)?.content,
+        sessionId: sessionId,
+        synced: false // Marqueur indiquant que ce n'est PAS synchronisé
+      };
+
+      const existingFeedbacks = JSON.parse(localStorage.getItem('studybot-feedbacks') || '[]');
+      existingFeedbacks.push(feedbackData);
+      localStorage.setItem('studybot-feedbacks', JSON.stringify(existingFeedbacks));
+
+      // Afficher quand même le feedback dans l'interface
+      setMessages(prev => prev.map(msg => {
+        if (msg.id === feedbackMessageId && msg.type === 'bot') {
+          return {
+            ...msg,
+            feedback: {
+              type: feedbackType,
+              comment: feedbackComment.trim() || undefined
+            }
+          };
+        }
+        return msg;
+      }));
+    }
 
     // Reset modal
     setShowFeedbackModal(false);
@@ -612,7 +710,7 @@ const App: React.FC = () => {
     setFeedbackComment('');
     
     playSendSound();
-  }, [feedbackMessageId, feedbackType, feedbackComment, messages, playSendSound]);
+  }, [feedbackMessageId, feedbackType, feedbackComment, messages, playSendSound, sessionId]);
 
   // ❌ Annuler feedback
   const cancelFeedback = useCallback(() => {
@@ -646,6 +744,69 @@ const App: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [showTooltip]);
+
+  // 🔧 États pour gérer le redimensionnement du widget
+  const [widgetSize, setWidgetSize] = useState({
+    width: 400,
+    height: 700
+  });
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeDirection, setResizeDirection] = useState<string>('');
+  const [widgetHovered, setWidgetHovered] = useState(false); // ✅ État pour le survol
+
+  // Tailles min/max pour le widget
+  const MIN_WIDTH = 320;
+  const MIN_HEIGHT = 500;
+  const MAX_WIDTH = 800;
+  const MAX_HEIGHT = 900;
+
+  // 🔧 Gestion du redimensionnement
+  const handleResizeStart = useCallback((direction: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    setResizeDirection(direction);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = widgetSize.width;
+    const startHeight = widgetSize.height;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      // Gestion horizontale (redimensionnement par la largeur)
+      if (direction.includes('right')) {
+        newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth + (e.clientX - startX)));
+      }
+      if (direction.includes('left')) {
+        newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, startWidth - (e.clientX - startX)));
+      }
+      
+      // Gestion verticale (redimensionnement par la hauteur)
+      if (direction.includes('bottom')) {
+        newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, startHeight + (e.clientY - startY)));
+      }
+      if (direction.includes('top')) {
+        newHeight = Math.max(MIN_HEIGHT, Math.min(MAX_HEIGHT, startHeight - (e.clientY - startY)));
+      }
+
+      setWidgetSize({ width: newWidth, height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      setResizeDirection('');
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }, [widgetSize]);
+
+  // 📝 État de l'administration (reste inchangé)
+  const [showAdmin, setShowAdmin] = useState<boolean>(false);
 
   return (
     <div style={{
@@ -861,15 +1022,19 @@ const App: React.FC = () => {
                 top: buttonPosition.y <= window.innerHeight / 2 ? '54px' : 'auto',
                 right: buttonPosition.x > window.innerWidth / 2 ? '0' : 'auto',
                 left: buttonPosition.x <= window.innerWidth / 2 ? '0' : 'auto',
-                width: window.innerWidth <= 700 ? '100vw' : '400px',
-                height: window.innerWidth <= 700 ? '85vh' : '700px',
+                width: window.innerWidth <= 700 ? '100vw' : `${widgetSize.width}px`, // ✅ Taille dynamique
+                height: window.innerWidth <= 700 ? '85vh' : `${widgetSize.height}px`, // ✅ Taille dynamique
                 backgroundColor: 'white',
                 borderRadius: window.innerWidth <= 700 ? '0' : '12px',
-                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
+                boxShadow: isResizing 
+                  ? '0 15px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px #e2001a' 
+                  : '0 10px 30px rgba(0, 0, 0, 0.15)',
                 display: 'flex',
                 flexDirection: 'column',
                 overflow: 'hidden',
                 border: '1px solid #e1e5e9',
+                cursor: isResizing ? `${resizeDirection}-resize` : 'default',
+                transition: isResizing ? 'none' : 'all 0.2s ease',
                 ...(window.innerWidth <= 700 ? {
                   position: 'fixed',
                   top: 0,
@@ -880,6 +1045,130 @@ const App: React.FC = () => {
                 } : {})
               }}
             >
+              {/* Handles de redimensionnement (seulement sur desktop) */}
+              {window.innerWidth > 700 && (
+                <div 
+                  className="resize-handles-container"
+                  onMouseEnter={() => setWidgetHovered(true)}
+                  onMouseLeave={() => setWidgetHovered(false)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    pointerEvents: 'none',
+                    zIndex: 5
+                  }}
+                >
+                  {/* Handle coin haut-gauche */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart('top-left', e)}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '16px',
+                      height: '16px',
+                      background: 'linear-gradient(45deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      cursor: 'nw-resize',
+                      borderTopLeftRadius: '12px',
+                      opacity: widgetHovered || isResizing ? 0.8 : 0,
+                      transition: 'opacity 0.3s ease',
+                      pointerEvents: 'auto'
+                    }}
+                  />
+                  
+                  {/* Handle coin haut-droit */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart('top-right', e)}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      right: 0,
+                      width: '16px',
+                      height: '16px',
+                      background: 'linear-gradient(135deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      cursor: 'ne-resize',
+                      borderTopRightRadius: '12px',
+                      opacity: widgetHovered || isResizing ? 0.8 : 0,
+                      transition: 'opacity 0.3s ease',
+                      pointerEvents: 'auto'
+                    }}
+                  />
+                  
+                  {/* Handle coin bas-gauche */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart('bottom-left', e)}
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      left: 0,
+                      width: '16px',
+                      height: '16px',
+                      background: 'linear-gradient(-45deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      cursor: 'sw-resize',
+                      borderBottomLeftRadius: '12px',
+                      opacity: widgetHovered || isResizing ? 0.8 : 0,
+                      transition: 'opacity 0.3s ease',
+                      pointerEvents: 'auto'
+                    }}
+                  />
+
+                  {/* Handle coin bas-droit */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart('bottom-right', e)}
+                    style={{
+                      position: 'absolute',
+                      bottom: 0,
+                      right: 0,
+                      width: '16px',
+                      height: '16px',
+                      background: 'linear-gradient(225deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      cursor: 'se-resize',
+                      borderBottomRightRadius: '12px',
+                      opacity: widgetHovered || isResizing ? 0.8 : 0,
+                      transition: 'opacity 0.3s ease',
+                      pointerEvents: 'auto'
+                    }}
+                  />
+                  
+                  {/* Handle bord droit */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart('right', e)}
+                    style={{
+                      position: 'absolute',
+                      top: '16px',
+                      bottom: '16px',
+                      right: '-3px',
+                      width: '8px',
+                      background: widgetHovered || isResizing ? 'rgba(226, 0, 26, 0.3)' : 'transparent',
+                      cursor: 'e-resize',
+                      opacity: widgetHovered || isResizing ? 1 : 0,
+                      transition: 'all 0.3s ease',
+                      pointerEvents: 'auto'
+                    }}
+                  />
+                  
+                  {/* Handle bord bas */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart('bottom', e)}
+                    style={{
+                      position: 'absolute',
+                      bottom: '-3px',
+                      left: '16px',
+                      right: '16px',
+                      height: '8px',
+                      background: widgetHovered || isResizing ? 'rgba(226, 0, 26, 0.3)' : 'transparent',
+                      cursor: 's-resize',
+                      opacity: widgetHovered || isResizing ? 1 : 0,
+                      transition: 'all 0.3s ease',
+                      pointerEvents: 'auto'
+                    }}
+                  />
+                </div>
+              )}
+
               {/* En-tête emlyon avec animation */}
               <motion.div 
                 initial={{ opacity: 0, y: -20 }}
@@ -970,21 +1259,22 @@ const App: React.FC = () => {
                     whileHover={{ scale: 1.1, rotate: -90 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => {
+                      // Nettoyer les messages de l'ancienne session
+                      if (sessionId) {
+                        const oldMessagesKey = `studybot_messages_${sessionId}`;
+                        localStorage.removeItem(oldMessagesKey);
+                        console.log('🗑️ Messages de l\'ancienne session supprimés');
+                      }
+                      
+                      // Créer nouvelle session (qui déclenchera automatiquement la réinitialisation des messages)
                       const newSessionId = resetSession();
-                      // Réinitialiser les messages avec le message de bienvenue
-                      setMessages([
-                        {
-                          id: 1,
-                          type: 'bot',
-                          content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
-                          feedback: null
-                        }
-                      ]);
+                      
+                      // Reset des états UI
                       setInputValue('');
                       setShowTyping(false);
                       setTypewritingMessageId(null);
                       playNotificationSound();
-                      console.log('🔄 Conversation réinitialisée avec session:', newSessionId);
+                      console.log('🔄 Conversation réinitialisée avec nouvelle session:', newSessionId);
                     }}
                     title="Réinitialiser la conversation"
                     style={{
@@ -1025,6 +1315,7 @@ const App: React.FC = () => {
               {/* Corps du chat avec auto-scroll */}
               <div 
                 ref={chatContainerRef}
+                className="chat-container"
                 style={{
                   flex: 1,
                   padding: '16px 20px',
@@ -1032,10 +1323,13 @@ const App: React.FC = () => {
                   flexDirection: 'column',
                   gap: '16px',
                   overflowY: 'auto',
-                  scrollBehavior: 'smooth'
+                  overflowX: 'hidden', // ✅ Empêcher le scroll horizontal
+                  scrollBehavior: 'smooth',
+                  wordWrap: 'break-word'
                 }}
               >
                 {/* Messages animés avec feedback */}
+                <div className="chat-messages">
                 {messages.map((message, index) => (
                   <motion.div
                     key={message.id}
@@ -1112,6 +1406,21 @@ const App: React.FC = () => {
                             text={message.content} 
                             speed={6}
                             onComplete={() => setTypewritingMessageId(null)}
+                            enableLinks={true}
+                          />
+                        ) : message.type === 'bot' ? (
+                          <div 
+                            className="message-content"
+                            dangerouslySetInnerHTML={{ 
+                              __html: formatBotMessage(message.content) 
+                            }}
+                            style={{
+                              fontSize: '14px',
+                              lineHeight: '1.5',
+                              maxWidth: '100%',
+                              wordWrap: 'break-word',
+                              overflowWrap: 'break-word'
+                            }}
                           />
                         ) : (
                           message.content
@@ -1250,6 +1559,7 @@ const App: React.FC = () => {
                     )}
                   </motion.div>
                 ))}
+                </div> {/* Fermeture de chat-messages */}
 
                 {/* Typing indicator animé */}
                 <AnimatePresence>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import ConversationsSection from './ConversationsSection';
-
+import { useConversationsCount } from '../../hooks/useAdminApi';
 
 interface AdminDashboardProps {
   className?: string;
@@ -179,6 +179,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [showAddUserModal, setShowAddUserModal] = React.useState(false); // Modal d'ajout d'utilisateur
   const [showPermissionsModal, setShowPermissionsModal] = React.useState(false); // Modal de permissions
   const [selectedUser, setSelectedUser] = React.useState<any>(null); // Utilisateur sélectionné pour édition
+  
+  // Hook pour récupérer le nombre total de conversations pour le badge
+  const { data: conversationsCountData, refetch: refetchConversationsCount } = useConversationsCount();
+  const conversationsCount = conversationsCountData?.total || 0;
 
   // Générer les dates pour le calendrier (janvier 2025) - utilisée dans la section legacy désactivée
   const generateCalendarDates = () => {
@@ -289,7 +293,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
         <nav style={{ flex: 1, padding: isSidebarCollapsed ? '0 8px' : '0 16px' }}>
           {[
             { icon: '📊', label: 'Dashboard', id: 'dashboard', badge: null },
-            { icon: '💬', label: 'Conversations', id: 'conversations', badge: '12' },
+            { icon: '💬', label: 'Conversations', id: 'conversations', badge: conversationsCount.toString() },
             { icon: '🤖', label: 'Prompt Système', id: 'prompt', badge: 'v1.3' },
             { icon: '📈', label: 'Analytics', id: 'analytics', badge: null },
             { icon: '⚙️', label: 'Configuration', id: 'config', badge: null },
@@ -500,6 +504,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
           <motion.button
             whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
+            onClick={() => {
+              // Actualiser le badge des conversations
+              refetchConversationsCount();
+            }}
             style={{
               padding: '12px 24px',
               background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',

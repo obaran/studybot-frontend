@@ -40,7 +40,7 @@ function useApi<T>(
     try {
       setLoading(true);
       setError(null);
-      const result = await apiCall();
+      const result = await apiCall(); // ✅ Utilise toujours la version actuelle d'apiCall
       setData(result);
       return result;
     } catch (err) {
@@ -85,6 +85,18 @@ export function useConversations(
   const [allFilters, setFilters] = useState(filters);
   const [allPagination, setPagination] = useState(pagination);
 
+  // Stabiliser l'apiCall avec useCallback et ajouter cache-busting
+  const [cacheBuster, setCacheBuster] = useState(0);
+  
+  const apiCall = useCallback(() => {
+    const filtersWithCacheBust = cacheBuster > 0 ? {
+      ...allFilters,
+      _t: cacheBuster // Cache-busting parameter
+    } : allFilters;
+    
+    return adminApi.getConversations(filtersWithCacheBust, allPagination);
+  }, [allFilters, allPagination, cacheBuster]);
+
   const {
     data,
     loading,
@@ -92,7 +104,7 @@ export function useConversations(
     execute,
     reset
   } = useApi<PaginatedResponse<Conversation>>(
-    () => adminApi.getConversations(allFilters, allPagination),
+    apiCall,
     {
       dependencies: [allFilters, allPagination],
       initialData: {
@@ -140,6 +152,21 @@ export function useConversations(
     }
   }, [allFilters]);
 
+  // useEffect pour déclencher refetch quand cacheBuster change
+  useEffect(() => {
+    if (cacheBuster > 0) { // Éviter l'exécution au montage initial
+      console.log('🚀 Déclenchement refetch suite à cache-busting:', cacheBuster);
+      execute();
+    }
+  }, [cacheBuster, execute]);
+
+  // Fonction de refetch avec cache-busting
+  const forceRefetch = useCallback(() => {
+    const timestamp = Date.now();
+    console.log('🔄 Force refetch avec cache-busting:', timestamp);
+    setCacheBuster(timestamp); // Met à jour le cacheBuster qui déclenchera useEffect
+  }, []);
+
   return {
     conversations: data?.items || [],
     total: data?.total || 0,
@@ -153,7 +180,7 @@ export function useConversations(
     updatePagination,
     searchConversations,
     exportConversations,
-    refetch: execute,
+    refetch: forceRefetch, // ✅ Utilise la fonction avec cache-busting
     reset
   };
 }
