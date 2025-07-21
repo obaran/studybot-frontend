@@ -813,7 +813,7 @@ const App: React.FC = () => {
       minHeight: '100vh',
       backgroundColor: '#f8f9fa',
       padding: '20px',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" // ✅ Poppins en priorité
     }}>
       
       {/* Dashboard Admin en arrière-plan */}
@@ -842,6 +842,7 @@ const App: React.FC = () => {
            animate={isDragging ? "dragging" : "idle"}
            whileHover={!isDragging ? "hover" : undefined}
            whileTap="tap"
+           className="studybot-button" // ✅ Classe pour Poppins
            transition={{
              scale: { duration: 0.2 },
              rotate: { duration: 0.4, ease: "easeInOut" }
@@ -923,6 +924,7 @@ const App: React.FC = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 5, scale: 0.9 }}
               transition={{ duration: 0.2, type: "spring", stiffness: 400 }}
+              className="studybot-tooltip poppins-medium" // ✅ Classes pour Poppins
               style={{
                 position: 'absolute',
                 // 🧭 Positionnement intelligent selon la position du bouton
@@ -1010,6 +1012,7 @@ const App: React.FC = () => {
               initial="hidden"
               animate="visible"
               exit="exit"
+              className="studybot-widget studybot-chat" // ✅ Classes principales pour Poppins
               transition={{
                 duration: 0.3,
                 type: "spring",

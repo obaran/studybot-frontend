@@ -1,9 +1,37 @@
+/* =============================================================================
+   IMPORT DE LA POLICE OFFICIELLE EMLYON - POPPINS
+============================================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
   padding: 2rem;
   text-align: center;
 }
+
+/* =============================================================================
+   POLICE POPPINS POUR TOUT LE WIDGET STUDYBOT
+============================================================================= */
+
+/* Application globale de Poppins au widget et tous ses enfants */
+.studybot-widget, 
+.studybot-widget *,
+.studybot-button,
+.studybot-tooltip,
+.studybot-chat {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+  font-optical-sizing: auto;
+  font-style: normal;
+}
+
+/* Styles spécifiques selon les poids Poppins */
+.poppins-light { font-weight: 300; }
+.poppins-regular { font-weight: 400; }
+.poppins-medium { font-weight: 500; }
+.poppins-semibold { font-weight: 600; }
+.poppins-bold { font-weight: 700; }
+.poppins-extrabold { font-weight: 800; }
 
 .logo {
   height: 6em;
@@ -55,6 +83,7 @@
   transition: all 0.2s ease;
   word-break: break-all; /* Force le retour à la ligne pour les URLs longues */
   display: inline;
+  font-family: 'Poppins', sans-serif !important; /* Police Poppins pour les liens */
 }
 
 .bot-link:hover {
@@ -80,17 +109,20 @@
   hyphens: auto;
   max-width: 100%;
   box-sizing: border-box;
+  font-family: 'Poppins', sans-serif !important; /* Police Poppins pour le contenu */
 }
 
 /* Éviter le scroll horizontal dans les conteneurs de messages */
 .chat-container {
   overflow-x: hidden !important;
   word-wrap: break-word;
+  font-family: 'Poppins', sans-serif !important; /* Police Poppins pour le chat */
 }
 
 .chat-messages {
   overflow-x: hidden !important;
   width: 100%;
+  font-family: 'Poppins', sans-serif !important; /* Police Poppins pour les messages */
 }
 
 /* =============================================================================

@@ -209,7 +209,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
       height: '100vh',
       background: 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%)',
       display: 'flex',
-      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      fontFamily: "'Poppins', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" // ✅ Poppins priorité
     }}>
       {/* Sidebar Navigation Premium */}
       <motion.div

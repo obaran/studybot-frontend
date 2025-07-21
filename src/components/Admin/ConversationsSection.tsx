@@ -1262,7 +1262,7 @@ const ConversationsSection: React.FC = () => {
               {loading ? '⟳' : '↻'}
             </motion.span>
             <span style={{ 
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif", // ✅ Poppins priorité
               letterSpacing: '0.25px'
             }}>
               {loading ? 'Actualisation...' : 'Actualiser'}
