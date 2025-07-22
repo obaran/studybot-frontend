@@ -5,7 +5,7 @@ import type { ConversationFilters } from '../../types/admin';
 
 const ConversationsSection: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'positive' | 'negative'>('all');
+  const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'positive' | 'negative' | 'none'>('all');
   const [selectedDate, setSelectedDate] = useState('');
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
@@ -26,7 +26,7 @@ const ConversationsSection: React.FC = () => {
   const [isAdvancedSearch, setIsAdvancedSearch] = useState(false);
   const [advancedFilters, setAdvancedFilters] = useState({
     textQuery: '',
-    feedbackType: ''
+    feedbackType: 'all' as 'all' | 'positive' | 'negative' | 'none'
   });
 
   // Fonctions de navigation du calendrier
@@ -68,7 +68,7 @@ const ConversationsSection: React.FC = () => {
       // Reset des filtres avancés quand on revient en mode simple
       setAdvancedFilters({
         textQuery: '',
-        feedbackType: ''
+        feedbackType: 'all'
       });
     }
   };
@@ -88,7 +88,7 @@ const ConversationsSection: React.FC = () => {
     setEndDate('');
     setAdvancedFilters({
       textQuery: '',
-      feedbackType: ''
+      feedbackType: 'all'
     });
     setDateRangeMode(false);
     setSelectingEndDate(false);
@@ -210,13 +210,13 @@ const ConversationsSection: React.FC = () => {
       // Mode recherche avancée - filtres combinés
       newFilters = {
         search: debouncedAdvancedSearch || undefined,
-        feedback: (advancedFilters.feedbackType as 'positive' | 'negative' | 'none' | 'all') || undefined,
+        feedback: advancedFilters.feedbackType || 'all', // ✅ Garder 'all' au lieu de undefined
       };
     } else {
       // Mode recherche simple
       newFilters = {
         search: debouncedSearch || undefined,
-        feedback: feedbackFilter === 'all' ? undefined : feedbackFilter,
+        feedback: feedbackFilter, // ✅ Garder la valeur directement (y compris 'all')
       };
     }
 
@@ -1138,7 +1138,7 @@ const ConversationsSection: React.FC = () => {
           {/* Filtre par feedback */}
           <motion.select
             value={feedbackFilter}
-            onChange={(e) => setFeedbackFilter(e.target.value as 'all' | 'positive' | 'negative')}
+            onChange={(e) => setFeedbackFilter(e.target.value as 'all' | 'positive' | 'negative' | 'none')}
             whileFocus={{ scale: 1.01 }}
             style={{
               padding: '16px 20px',
@@ -1158,6 +1158,7 @@ const ConversationsSection: React.FC = () => {
             <option value="all">🌟 Tous les feedbacks</option>
             <option value="positive">👍 Feedbacks positifs</option>
             <option value="negative">👎 Feedbacks négatifs</option>
+            <option value="none">⭕ Sans feedback</option>
           </motion.select>
         </div>
       </motion.div>
@@ -1175,20 +1176,20 @@ const ConversationsSection: React.FC = () => {
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}
       >
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '24px'
-        }}>
-          <h3 style={{
-            fontSize: '20px',
-            fontWeight: '700',
-            color: '#1e293b',
-            margin: '0'
+                  <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '24px'
           }}>
-            Conversations ({conversations?.length || 0})
-          </h3>
+            <h3 style={{
+              fontSize: '20px',
+              fontWeight: '700',
+              color: '#1e293b',
+              margin: '0'
+            }}>
+              Conversations ({conversations?.length || 0})
+            </h3>
           
           <motion.button
             whileHover={{ 

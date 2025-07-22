@@ -173,7 +173,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [modalContent, setModalContent] = React.useState('');
   const [hasModalChanges, setHasModalChanges] = React.useState(false);
   const [searchTerm, setSearchTerm] = React.useState('');
-  const [feedbackFilter, setFeedbackFilter] = React.useState('all'); // 'all', 'positive', 'negative'
+  const [feedbackFilter, setFeedbackFilter] = React.useState('all'); // 'all', 'positive', 'negative', 'none'
   const [selectedDate, setSelectedDate] = React.useState(''); // Date sélectionnée au format YYYY-MM-DD
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false); // État du calendrier popup
   const [showAddUserModal, setShowAddUserModal] = React.useState(false); // Modal d'ajout d'utilisateur
@@ -184,17 +184,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const { data: conversationsCountData, refetch: refetchConversationsCount } = useConversationsCount();
   const conversationsCount = conversationsCountData?.total || 0;
 
-  // Générer les dates pour le calendrier (janvier 2025) - utilisée dans la section legacy désactivée
+  // Fonction de filtrage unifiée pour éviter la duplication et assurer la cohérence
+  const getFilteredConversations = React.useCallback(() => {
+    console.log('🔍 Filtrage avec:', { searchTerm, feedbackFilter, selectedDate });
+    
+    const filtered = MOCK_CONVERSATIONS.filter(conv => {
+      const matchesSearch = conv.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      // Logique de filtrage par feedback améliorée
+      let matchesFeedback = false;
+      if (feedbackFilter === 'all') {
+        matchesFeedback = true;
+      } else if (feedbackFilter === 'positive') {
+        matchesFeedback = conv.feedback === 'positive';
+      } else if (feedbackFilter === 'negative') {
+        matchesFeedback = conv.feedback === 'negative';
+      } else if (feedbackFilter === 'none') {
+        matchesFeedback = conv.feedback === null || conv.feedback === undefined;
+      }
+      
+      // Filtre par date sélectionnée
+      const matchesDate = !selectedDate || conv.date === selectedDate;
+      
+      console.log(`Conversation ${conv.id}: search=${matchesSearch}, feedback=${matchesFeedback} (conv.feedback=${conv.feedback}, filter=${feedbackFilter}), date=${matchesDate}`);
+      
+      return matchesSearch && matchesFeedback && matchesDate;
+    });
+
+    console.log(`📊 Total conversations: ${MOCK_CONVERSATIONS.length}, Filtrées: ${filtered.length}`);
+    return filtered;
+  }, [searchTerm, feedbackFilter, selectedDate]);
+
+  // Données filtrées mémorisées
+  const filteredConversations = React.useMemo(() => {
+    return getFilteredConversations();
+  }, [getFilteredConversations]);
+
+  // Générer les dates du calendrier
   const generateCalendarDates = () => {
     const dates = [];
-    // const currentDate = new Date(2025, 0, 1); // Janvier 2025 - non utilisée actuellement
-    const daysInMonth = new Date(2025, 0 + 1, 0).getDate();
-    
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(2025, 0, day);
-      const dateString = date.toISOString().split('T')[0];
+    for (let day = 1; day <= 31; day++) {
+      const dateString = `2025-01-${day.toString().padStart(2, '0')}`;
       const hasConversations = MOCK_CONVERSATIONS.some(conv => conv.date === dateString);
-      
       dates.push({
         day,
         dateString,
@@ -1639,7 +1671,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     <option value="all">🌟 Tous les feedbacks</option>
                     <option value="positive">👍 Feedback positif</option>
                     <option value="negative">👎 Feedback négatif</option>
+                    <option value="none">⭕ Sans feedback</option>
                   </motion.select>
+                  
+
                   
                   <div style={{
                     position: 'absolute',
@@ -1676,51 +1711,73 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                 border: '1px solid rgba(255, 255, 255, 0.2)'
               }}
             >
-              <h3 style={{
-                fontSize: '20px',
-                fontWeight: '700',
-                color: '#1e293b',
-                margin: '0 0 24px 0'
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: '24px'
               }}>
-                Conversations ({(() => {
-                  const filtered = MOCK_CONVERSATIONS.filter(conv => {
-                    const matchesSearch = conv.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchesFeedback = feedbackFilter === 'all' || 
-                                          (feedbackFilter === 'positive' && conv.feedback === 'positive') ||
-                                          (feedbackFilter === 'negative' && conv.feedback === 'negative');
-                    
-                    // Filtre par date sélectionnée
-                    const matchesDate = !selectedDate || conv.date === selectedDate;
-                    
-                    return matchesSearch && matchesFeedback && matchesDate;
-                  });
-                  return filtered.length;
-                })()})
-              </h3>
+                <h3 style={{
+                  fontSize: '20px',
+                  fontWeight: '700',
+                  color: '#1e293b',
+                  margin: '0'
+                }}>
+                  Conversations ({filteredConversations.length})
+                </h3>
+                
+                {/* Indicateur de filtrage actif */}
+                {(feedbackFilter !== 'all' || searchTerm || selectedDate) && (
+                  <div style={{
+                    display: 'flex',
+                    gap: '8px',
+                    fontSize: '12px',
+                    color: '#64748b'
+                  }}>
+                    {feedbackFilter !== 'all' && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        {feedbackFilter === 'positive' && '👍 Positifs uniquement'}
+                        {feedbackFilter === 'negative' && '👎 Négatifs uniquement'}
+                        {feedbackFilter === 'none' && '⭕ Sans feedback'}
+                      </span>
+                    )}
+                    {searchTerm && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        🔍 Recherche active
+                      </span>
+                    )}
+                    {selectedDate && (
+                      <span style={{
+                        background: '#f1f5f9',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid #e2e8f0'
+                      }}>
+                        📅 Date: {selectedDate}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {(() => {
-                  // Filtrage et tri des conversations
-                  const filtered = MOCK_CONVERSATIONS.filter(conv => {
-                    const matchesSearch = conv.user.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                        conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase());
-                    const matchesFeedback = feedbackFilter === 'all' || 
-                                          (feedbackFilter === 'positive' && conv.feedback === 'positive') ||
-                                          (feedbackFilter === 'negative' && conv.feedback === 'negative');
-                    
-                    // Filtre par date sélectionnée
-                    const matchesDate = !selectedDate || conv.date === selectedDate;
-                    
-                    return matchesSearch && matchesFeedback && matchesDate;
+                  // Tri par date/heure (plus récent en premier)
+                  const sorted = filteredConversations.sort((a, b) => {
+                    const dateA = new Date(`${a.date}T${a.time}`).getTime();
+                    const dateB = new Date(`${b.date}T${b.time}`).getTime();
+                    return dateB - dateA;
                   });
-
-                                     // Tri par date/heure (plus récent en premier)
-                   const sorted = filtered.sort((a, b) => {
-                     const dateA = new Date(`${a.date}T${a.time}`).getTime();
-                     const dateB = new Date(`${b.date}T${b.time}`).getTime();
-                     return dateB - dateA;
-                   });
 
                   return sorted.map((conversation, index) => (
                     <motion.div
