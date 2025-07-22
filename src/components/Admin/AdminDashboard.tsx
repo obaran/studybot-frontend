@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import ConversationsSection from './ConversationsSection';
 import { useConversationsCount } from '../../hooks/useAdminApi';
+import { useSystemPrompts } from '../../hooks/useSystemPrompts';
 
 interface AdminDashboardProps {
   className?: string;
@@ -165,7 +166,6 @@ const MOCK_PROMPT_HISTORY: SystemPrompt[] = [
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [activeSection, setActiveSection] = React.useState('dashboard');
-  const [currentPrompt, setCurrentPrompt] = React.useState(MOCK_SYSTEM_PROMPT.content);
   const [isEditingPrompt, setIsEditingPrompt] = React.useState(false);
   const [promptDraft, setPromptDraft] = React.useState('');
   const [showPromptModal, setShowPromptModal] = React.useState(false);
@@ -178,7 +178,23 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false); // État du calendrier popup
   const [showAddUserModal, setShowAddUserModal] = React.useState(false); // Modal d'ajout d'utilisateur
   const [showPermissionsModal, setShowPermissionsModal] = React.useState(false); // Modal de permissions
-  const [selectedUser, setSelectedUser] = React.useState<any>(null); // Utilisateur sélectionné pour édition
+  const [selectedUser, setSelectedUser] = React.useState<any>(null);
+
+  // Hook pour la gestion des prompts système (remplace les données mockées)
+  const {
+    prompts,
+    activePrompt,
+    stats,
+    loading: promptsLoading,
+    saving: promptsSaving,
+    error: promptsError,
+    updatePrompt,
+    restoreVersion
+  } = useSystemPrompts();
+
+  // Valeurs par défaut pour la compatibilité avec l'interface existante
+  const currentPrompt = activePrompt?.content || MOCK_SYSTEM_PROMPT.content;
+  const currentPromptVersion = activePrompt?.version || MOCK_SYSTEM_PROMPT.version; // Utilisateur sélectionné pour édition
   
   // Hook pour récupérer le nombre total de conversations pour le badge
   const { data: conversationsCountData, refetch: refetchConversationsCount } = useConversationsCount();
@@ -326,7 +342,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
           {[
             { icon: '📊', label: 'Dashboard', id: 'dashboard', badge: null },
             { icon: '💬', label: 'Conversations', id: 'conversations', badge: conversationsCount.toString() },
-            { icon: '🤖', label: 'Prompt Système', id: 'prompt', badge: 'v1.3' },
+            { icon: '🤖', label: 'Prompt Système', id: 'prompt', badge: currentPromptVersion ? `v${currentPromptVersion}` : '...' },
             { icon: '📈', label: 'Analytics', id: 'analytics', badge: null },
             { icon: '⚙️', label: 'Configuration', id: 'config', badge: null },
             { icon: '👥', label: 'Utilisateurs', id: 'users', badge: '2.4k' },
@@ -524,7 +540,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                 <>Vue d'ensemble de l'activité • <span style={{ color: '#e2001a', fontWeight: '600' }}>emlyon business school</span></>
               )}
               {activeSection === 'prompt' && (
-                <>Configuration et historique des prompts • <span style={{ color: '#e2001a', fontWeight: '600' }}>Version {MOCK_SYSTEM_PROMPT.version}</span></>
+                <>Configuration et historique des prompts • <span style={{ color: '#e2001a', fontWeight: '600' }}>Version {currentPromptVersion}</span></>
               )}
               {activeSection === 'conversations' && 'Gestion des conversations étudiantes'}
               {activeSection === 'analytics' && 'Analyse des performances et métriques'}
@@ -888,13 +904,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         textTransform: 'uppercase',
                         letterSpacing: '0.5px'
                       }}>
-                        ACTIF • v{MOCK_SYSTEM_PROMPT.version}
+                        ACTIF • v{currentPromptVersion}
                       </span>
                       <span style={{
                         fontSize: '12px',
                         color: '#64748b'
                       }}>
-                        Mis à jour le {new Date(MOCK_SYSTEM_PROMPT.createdAt).toLocaleDateString('fr-FR')}
+                        Mis à jour le {activePrompt ? new Date(activePrompt.createdAt).toLocaleDateString('fr-FR') : 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -930,11 +946,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          onClick={() => {
-                            setCurrentPrompt(promptDraft);
+                                                  onClick={async () => {
+                          if (activePrompt && promptDraft !== currentPrompt) {
+                            const success = await updatePrompt(activePrompt.promptId, {
+                              content: promptDraft,
+                              changeSummary: `Mise à jour depuis l'éditeur admin`
+                            });
+                            if (success) {
+                              setIsEditingPrompt(false);
+                              setPromptDraft('');
+                            }
+                          } else {
                             setIsEditingPrompt(false);
                             setPromptDraft('');
-                          }}
+                          }
+                        }}
                           style={{
                             padding: '8px 16px',
                             background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
@@ -1048,7 +1074,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Version</span>
-                      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>v{MOCK_SYSTEM_PROMPT.version}</span>
+                      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>v{currentPromptVersion}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Statut</span>
@@ -1074,7 +1100,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>Créé par</span>
-                      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>{MOCK_SYSTEM_PROMPT.createdBy}</span>
+                      <span style={{ fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>{activePrompt?.createdBy || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -1162,12 +1188,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                   borderRadius: '20px',
                   fontWeight: '500'
                 }}>
-                  {MOCK_PROMPT_HISTORY.length} versions
+                  {prompts.length} versions
                 </span>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {MOCK_PROMPT_HISTORY.map((prompt, index) => (
+                {prompts.map((prompt, index) => (
                   <motion.div
                     key={prompt.id}
                     initial={{ x: -20, opacity: 0 }}
@@ -1182,18 +1208,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       border: '1px solid transparent',
                       transition: 'all 0.3s ease',
                       cursor: 'pointer',
-                      backgroundColor: prompt.status === 'active' ? 'rgba(5, 150, 105, 0.05)' : 'transparent'
+                      backgroundColor: prompt.isActive ? 'rgba(5, 150, 105, 0.05)' : 'transparent'
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = prompt.status === 'active' 
-                        ? 'rgba(5, 150, 105, 0.1)' 
-                        : '#f8fafc';
-                      e.currentTarget.style.borderColor = 'rgba(226, 0, 26, 0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = prompt.status === 'active' 
-                        ? 'rgba(5, 150, 105, 0.05)' 
-                        : 'transparent';
+                                              e.currentTarget.style.backgroundColor = prompt.isActive 
+                          ? 'rgba(5, 150, 105, 0.1)' 
+                          : '#f8fafc';
+                        e.currentTarget.style.borderColor = 'rgba(226, 0, 26, 0.1)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = prompt.isActive 
+                          ? 'rgba(5, 150, 105, 0.05)' 
+                          : 'transparent';
                       e.currentTarget.style.borderColor = 'transparent';
                     }}
                   >
@@ -1201,7 +1227,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       width: '48px',
                       height: '48px',
                       borderRadius: '50%',
-                      background: prompt.status === 'active' 
+                      background: prompt.isActive 
                         ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
                         : 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
                       display: 'flex',
@@ -1228,13 +1254,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         <span style={{
                           fontSize: '11px',
                           fontWeight: '600',
-                          color: prompt.status === 'active' ? '#059669' : '#64748b',
-                          backgroundColor: prompt.status === 'active' ? '#059669/10' : '#64748b/10',
+                          color: prompt.isActive ? '#059669' : '#64748b',
+                          backgroundColor: prompt.isActive ? '#059669/10' : '#64748b/10',
                           padding: '2px 8px',
                           borderRadius: '8px',
                           textTransform: 'uppercase'
                         }}>
-                          {prompt.status === 'active' ? 'ACTIF' : 'ARCHIVÉ'}
+                          {prompt.isActive ? 'ACTIF' : 'ARCHIVÉ'}
                         </span>
                       </div>
                       <p style={{
@@ -1273,6 +1299,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setModalContent(prompt.content);
+                          setHasModalChanges(false);
+                          setShowPromptModal(true);
+                        }}
                         style={{
                           width: '32px',
                           height: '32px',
@@ -1291,10 +1322,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         👁️
                       </motion.button>
                       
-                      {prompt.status !== 'active' && (
+                      {!prompt.isActive && (
                         <motion.button
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
+                          onClick={async () => {
+                            if (window.confirm(`Restaurer la version ${prompt.version} ? Cela créera une nouvelle version active.`)) {
+                              const success = await restoreVersion(prompt.promptId);
+                              if (success) {
+                                alert(`Version ${prompt.version} restaurée avec succès !`);
+                              } else {
+                                alert('Erreur lors de la restauration de la version');
+                              }
+                            }
+                          }}
                           style={{
                             width: '32px',
                             height: '32px',
@@ -3204,7 +3245,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     backgroundClip: 'text',
                     margin: '0 0 4px 0'
                   }}>
-                    Prompt Système - Version {MOCK_SYSTEM_PROMPT.version}
+                    Prompt Système - Version {currentPromptVersion}
                   </h2>
                   <p style={{
                     color: '#64748b',
@@ -3301,9 +3342,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => {
-                        setCurrentPrompt(modalContent);
-                        setHasModalChanges(false);
+                      onClick={async () => {
+                        if (activePrompt && modalContent !== currentPrompt) {
+                          const success = await updatePrompt(activePrompt.promptId, {
+                            content: modalContent,
+                            changeSummary: `Mise à jour depuis le modal`
+                          });
+                          if (success) {
+                            setHasModalChanges(false);
+                          }
+                        } else {
+                          setHasModalChanges(false);
+                        }
                       }}
                       style={{
                         padding: '8px 16px',
