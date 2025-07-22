@@ -180,6 +180,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [showPermissionsModal, setShowPermissionsModal] = React.useState(false); // Modal de permissions
   const [selectedUser, setSelectedUser] = React.useState<any>(null);
 
+  // États pour les notes de version
+  const [showVersionNoteModal, setShowVersionNoteModal] = React.useState(false);
+  const [versionNote, setVersionNote] = React.useState('');
+  const [pendingPromptUpdate, setPendingPromptUpdate] = React.useState<string | null>(null);
+
+  // États pour afficher les notes existantes
+  const [showViewNoteModal, setShowViewNoteModal] = React.useState(false);
+  const [viewNoteData, setViewNoteData] = React.useState<{ version: string; note: string } | null>(null);
+
   // Hook pour la gestion des prompts système (remplace les données mockées)
   const {
     prompts,
@@ -673,7 +682,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     <div style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px'
+                      gap: '6px',
+                      flexShrink: 0
                     }}>
                       <span style={{
                         fontSize: '12px',
@@ -946,16 +956,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         <motion.button
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                                                  onClick={async () => {
+                                                  onClick={() => {
                           if (activePrompt && promptDraft !== currentPrompt) {
-                            const success = await updatePrompt(activePrompt.promptId, {
-                              content: promptDraft,
-                              changeSummary: `Mise à jour depuis l'éditeur admin`
-                            });
-                            if (success) {
-                              setIsEditingPrompt(false);
-                              setPromptDraft('');
-                            }
+                            // Ouvrir le popup de note avant de sauvegarder
+                            setPendingPromptUpdate(promptDraft);
+                            setShowVersionNoteModal(true);
                           } else {
                             setIsEditingPrompt(false);
                             setPromptDraft('');
@@ -1226,6 +1231,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     <div style={{
                       width: '48px',
                       height: '48px',
+                      minWidth: '48px',
+                      minHeight: '48px',
                       borderRadius: '50%',
                       background: prompt.isActive 
                         ? 'linear-gradient(135deg, #059669 0%, #047857 100%)' 
@@ -1241,7 +1248,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       v{prompt.version}
                     </div>
                     
-                    <div style={{ flex: 1 }}>
+                    <div style={{ 
+                      flex: 1, 
+                      minWidth: 0,
+                      maxWidth: 'calc(100% - 180px)' 
+                    }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '4px' }}>
                         <h4 style={{
                           fontSize: '16px',
@@ -1269,9 +1280,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         margin: '0',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
+                        whiteSpace: 'nowrap',
+                        maxWidth: '100%'
                       }}>
-                        {prompt.content.substring(0, 80)}...
+                        {prompt.content.substring(0, 65)}...
                       </p>
                     </div>
                     
@@ -1305,21 +1317,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                           setShowPromptModal(true);
                         }}
                         style={{
-                          width: '32px',
-                          height: '32px',
+                          width: '28px',
+                          height: '28px',
                           border: 'none',
-                          borderRadius: '8px',
+                          borderRadius: '6px',
                           background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
                           color: 'white',
                           cursor: 'pointer',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '12px'
+                          fontSize: '11px'
                         }}
                         title="Voir"
                       >
                         👁️
+                      </motion.button>
+
+                      {/* Bouton voir les notes */}
+                      <motion.button
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                                                 onClick={() => {
+                           setViewNoteData({
+                             version: prompt.version,
+                             note: prompt.description || 'Aucune note ajoutée pour cette version.'
+                           });
+                           setShowViewNoteModal(true);
+                         }}
+                                                 style={{
+                           width: '28px',
+                           height: '28px',
+                           border: 'none',
+                           borderRadius: '6px',
+                           background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                           color: 'white',
+                           cursor: 'pointer',
+                           display: 'flex',
+                           alignItems: 'center',
+                           justifyContent: 'center',
+                           fontSize: '11px'
+                         }}
+                        title="Voir la note"
+                      >
+                        📋
                       </motion.button>
                       
                       {!prompt.isActive && (
@@ -1337,17 +1378,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                             }
                           }}
                           style={{
-                            width: '32px',
-                            height: '32px',
+                            width: '28px',
+                            height: '28px',
                             border: 'none',
-                            borderRadius: '8px',
+                            borderRadius: '6px',
                             background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
                             color: 'white',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            fontSize: '12px'
+                            fontSize: '11px'
                           }}
                           title="Restaurer"
                         >
@@ -3342,15 +3383,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={async () => {
+                      onClick={() => {
                         if (activePrompt && modalContent !== currentPrompt) {
-                          const success = await updatePrompt(activePrompt.promptId, {
-                            content: modalContent,
-                            changeSummary: `Mise à jour depuis le modal`
-                          });
-                          if (success) {
-                            setHasModalChanges(false);
-                          }
+                          // Ouvrir le popup de note avant de sauvegarder
+                          setPendingPromptUpdate(modalContent);
+                          setShowVersionNoteModal(true);
                         } else {
                           setHasModalChanges(false);
                         }
@@ -3398,6 +3435,286 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     </motion.button>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Modal pour la note de version */}
+        {showVersionNoteModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}
+            onClick={() => {
+              setShowVersionNoteModal(false);
+              setVersionNote('');
+              setPendingPromptUpdate(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '20px',
+                padding: '40px',
+                maxWidth: '500px',
+                width: '90%',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{
+                marginBottom: '24px',
+                textAlign: 'center'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  margin: '0 0 8px 0'
+                }}>
+                  📋 Note de version
+                </h2>
+                <p style={{
+                  color: '#64748b',
+                  fontSize: '14px',
+                  margin: '0'
+                }}>
+                  Ajoutez une note pour expliquer cette modification
+                </p>
+              </div>
+
+              {/* Champ de saisie */}
+              <textarea
+                value={versionNote}
+                onChange={(e) => setVersionNote(e.target.value)}
+                placeholder="Ex: Mise à jour des contacts coordinateurs BBA4..."
+                style={{
+                  width: '100%',
+                  height: '120px',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '2px solid #e2e8f0',
+                  fontSize: '14px',
+                  fontFamily: 'Inter, sans-serif',
+                  resize: 'vertical',
+                  outline: 'none',
+                  marginBottom: '24px',
+                  transition: 'border-color 0.3s ease'
+                }}
+                onFocus={(e) => e.target.style.borderColor = '#e2001a'}
+                onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
+              />
+
+              {/* Boutons */}
+              <div style={{
+                display: 'flex',
+                gap: '12px',
+                justifyContent: 'flex-end'
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowVersionNoteModal(false);
+                    setVersionNote('');
+                    setPendingPromptUpdate(null);
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Annuler
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={async () => {
+                    if (activePrompt && pendingPromptUpdate) {
+                      const success = await updatePrompt(activePrompt.promptId, {
+                        content: pendingPromptUpdate,
+                        changeSummary: versionNote.trim() || 'Mise à jour sans note',
+                        description: versionNote.trim() || 'Pas de note ajoutée'
+                      });
+                      
+                      if (success) {
+                        // Fermer tous les modals et réinitialiser
+                        setShowVersionNoteModal(false);
+                        setVersionNote('');
+                        setPendingPromptUpdate(null);
+                        setIsEditingPrompt(false);
+                        setPromptDraft('');
+                        setHasModalChanges(false);
+                        setShowPromptModal(false);
+                        setModalContent('');
+                      }
+                    }
+                  }}
+                  style={{
+                    padding: '12px 24px',
+                    background: promptsSaving 
+                      ? 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)' 
+                      : 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: promptsSaving ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                  disabled={promptsSaving}
+                >
+                  {promptsSaving ? (
+                    <>⏳ Sauvegarde...</>
+                  ) : (
+                    <>💾 Sauvegarder</>
+                  )}
+                </motion.button>
+              </div>
+            </motion.div>
+                     </motion.div>
+         )}
+
+        {/* Modal pour voir les notes de version */}
+        {showViewNoteModal && viewNoteData && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}
+            onClick={() => {
+              setShowViewNoteModal(false);
+              setViewNoteData(null);
+            }}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '20px',
+                padding: '40px',
+                maxWidth: '500px',
+                width: '90%',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{
+                marginBottom: '24px',
+                textAlign: 'center'
+              }}>
+                <h2 style={{
+                  fontSize: '24px',
+                  fontWeight: '700',
+                  background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                  margin: '0 0 8px 0'
+                }}>
+                  📋 Note de version {viewNoteData.version}
+                </h2>
+                <p style={{
+                  color: '#64748b',
+                  fontSize: '14px',
+                  margin: '0'
+                }}>
+                  Détails de cette modification
+                </p>
+              </div>
+
+              {/* Contenu de la note */}
+              <div style={{
+                backgroundColor: '#f8fafc',
+                borderRadius: '12px',
+                padding: '20px',
+                border: '2px solid #e2e8f0',
+                marginBottom: '24px',
+                minHeight: '80px',
+                fontSize: '14px',
+                lineHeight: '1.6',
+                color: '#1e293b',
+                fontFamily: 'Inter, sans-serif',
+                whiteSpace: 'pre-wrap'
+              }}>
+                {viewNoteData.note}
+              </div>
+
+              {/* Bouton fermer */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'center'
+              }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setShowViewNoteModal(false);
+                    setViewNoteData(null);
+                  }}
+                  style={{
+                    padding: '12px 32px',
+                    background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Fermer
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
