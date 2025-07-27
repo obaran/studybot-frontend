@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 import StudyBotAPI, { type ChatRequest } from './services/api';
 import TypewriterText from './components/TypewriterText';
-import AdminDashboard from './components/admin/AdminDashboard';
+// import AdminDashboard from './components/admin/AdminDashboard'; // Retiré pour ChatOnly
 import { useSession } from './hooks/useSession';
 import { formatBotMessage, containsLinks } from './utils/textUtils';
 
@@ -212,8 +212,8 @@ const useSounds = () => {
   return { playSendSound, playReceiveSound, playNotificationSound };
 };
 
-// 🎨 StudyBot Widget Demo - emlyon business school
-const App: React.FC = () => {
+// 🎨 StudyBot Chat Only - emlyon business school
+const ChatOnly: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [showTyping, setShowTyping] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -836,17 +836,7 @@ const App: React.FC = () => {
       fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" // ✅ Poppins en priorité
     }}>
       
-      {/* Dashboard Admin en arrière-plan */}
-      <div style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        zIndex: 1
-      }}>
-        <AdminDashboard />
-      </div>
+      {/* Pas de Dashboard - Chat seulement */}
 
       {/* Widget StudyBot - Phase 2 avec Framer Motion */}
       <div style={{
@@ -1936,4 +1926,4 @@ const App: React.FC = () => {
   );
 };
 
-export default App;
+export default ChatOnly;

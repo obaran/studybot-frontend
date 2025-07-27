@@ -138,6 +138,8 @@ export interface UpdateSystemPromptRequest {
 
 export interface BotConfiguration {
   id: string;
+  token: string;
+  organization: string;
   welcomeMessage: string;
   footerText: string;
   footerLink?: string;
@@ -145,6 +147,13 @@ export interface BotConfiguration {
   userAvatarUrl?: string;
   primaryColor: string;
   secondaryColor: string;
+  position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
+  language: string;
+  environment: 'development' | 'production';
+  baseUrl: string;
+  apiUrl: string;
+  isActive: boolean;
+  createdAt: string;
   updatedAt: string;
   updatedBy: string;
 }

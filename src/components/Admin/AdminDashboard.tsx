@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import ConversationsSection from './ConversationsSection';
-import { useConversationsCount } from '../../hooks/useAdminApi';
+import { useConversationsCount, useConfiguration } from '../../hooks/useAdminApi';
 import { useSystemPrompts } from '../../hooks/useSystemPrompts';
 
 interface AdminDashboardProps {
@@ -189,6 +189,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [showViewNoteModal, setShowViewNoteModal] = React.useState(false);
   const [viewNoteData, setViewNoteData] = React.useState<{ version: string; note: string } | null>(null);
 
+  // États pour la configuration
+  const [configDraft, setConfigDraft] = React.useState({
+    welcomeMessage: '',
+    footerText: '',
+    footerLink: ''
+  });
+  const [hasConfigChanges, setHasConfigChanges] = React.useState(false);
+
   // Hook pour la gestion des prompts système (remplace les données mockées)
   const {
     prompts,
@@ -200,6 +208,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
     updatePrompt,
     restoreVersion
   } = useSystemPrompts();
+
+  // Hook pour la configuration widget
+  const {
+    config,
+    loading: configLoading,
+    error: configError,
+    updateConfig,
+    uploadFile,
+    generateLinks,
+    regenerateToken,
+    refetch: refetchConfig
+  } = useConfiguration();
 
   // Valeurs par défaut pour la compatibilité avec l'interface existante
   const currentPrompt = activePrompt?.content || MOCK_SYSTEM_PROMPT.content;
@@ -2623,10 +2643,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       outline: 'none',
                       transition: 'border-color 0.3s ease'
                     }}
-                    defaultValue="👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd'hui ?"
+                    value={hasConfigChanges ? configDraft.welcomeMessage : (config?.welcomeMessage || "👋 Bienvenue ! Je suis votre assistant virtuel emlyon...")}
+                    onChange={(e) => {
+                      setConfigDraft(prev => ({ ...prev, welcomeMessage: e.target.value }));
+                      setHasConfigChanges(true);
+                    }}
                     onFocus={(e) => e.target.style.borderColor = '#e2001a'}
                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                     placeholder="Entrez votre message de bienvenue..."
+                    disabled={configLoading}
                   />
                   
                   <div style={{
@@ -2646,16 +2671,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       whileTap={{ scale: 0.98 }}
                       style={{
                         padding: '8px 16px',
-                        background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                        background: hasConfigChanges 
+                          ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
+                          : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
                         color: 'white',
                         border: 'none',
                         borderRadius: '6px',
                         fontSize: '14px',
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: hasConfigChanges ? 'pointer' : 'not-allowed',
+                        opacity: configLoading ? 0.6 : 1
+                      }}
+                      disabled={!hasConfigChanges || configLoading}
+                      onClick={async () => {
+                        try {
+                          await updateConfig({
+                            welcomeMessage: configDraft.welcomeMessage
+                          });
+                          setHasConfigChanges(false);
+                          // Reset draft to current config
+                          setConfigDraft(prev => ({ ...prev, welcomeMessage: config?.welcomeMessage || '' }));
+                        } catch (error) {
+                          console.error('❌ Erreur lors de la sauvegarde:', error);
+                        }
                       }}
                     >
-                      💾 Sauvegarder
+                      💾 {configLoading ? 'Sauvegarde...' : 'Sauvegarder'}
                     </motion.button>
                   </div>
                 </div>
@@ -2685,10 +2726,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       marginBottom: '12px',
                       transition: 'border-color 0.3s ease'
                     }}
-                    defaultValue="Powered by emlyon business school"
+                    value={hasConfigChanges ? configDraft.footerText : (config?.footerText || "Powered by emlyon business school")}
+                    onChange={(e) => {
+                      setConfigDraft(prev => ({ ...prev, footerText: e.target.value }));
+                      setHasConfigChanges(true);
+                    }}
                     onFocus={(e) => e.target.style.borderColor = '#e2001a'}
                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                     placeholder="Texte affiché dans le footer"
+                    disabled={configLoading}
                   />
 
                   {/* Lien (optionnel) */}
@@ -2704,10 +2750,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       marginBottom: '12px',
                       transition: 'border-color 0.3s ease'
                     }}
-                    defaultValue="https://emlyon.com"
+                    value={hasConfigChanges ? configDraft.footerLink : (config?.footerLink || "https://emlyon.com")}
+                    onChange={(e) => {
+                      setConfigDraft(prev => ({ ...prev, footerLink: e.target.value }));
+                      setHasConfigChanges(true);
+                    }}
                     onFocus={(e) => e.target.style.borderColor = '#e2001a'}
                     onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
                     placeholder="Lien de redirection (optionnel)"
+                    disabled={configLoading}
                   />
 
                   <motion.button
@@ -2716,16 +2767,37 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     style={{
                       width: '100%',
                       padding: '12px',
-                      background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                      background: hasConfigChanges 
+                        ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
+                        : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
                       color: 'white',
                       border: 'none',
                       borderRadius: '8px',
                       fontSize: '14px',
                       fontWeight: '600',
-                      cursor: 'pointer'
+                      cursor: hasConfigChanges ? 'pointer' : 'not-allowed',
+                      opacity: configLoading ? 0.6 : 1
+                    }}
+                    disabled={!hasConfigChanges || configLoading}
+                    onClick={async () => {
+                      try {
+                        await updateConfig({
+                          footerText: configDraft.footerText,
+                          footerLink: configDraft.footerLink
+                        });
+                        setHasConfigChanges(false);
+                        // Reset draft to current config
+                        setConfigDraft(prev => ({ 
+                          ...prev, 
+                          footerText: config?.footerText || '',
+                          footerLink: config?.footerLink || ''
+                        }));
+                      } catch (error) {
+                        console.error('❌ Erreur lors de la mise à jour:', error);
+                      }
                     }}
                   >
-                    💾 Mettre à jour
+                    💾 {configLoading ? 'Mise à jour...' : 'Mettre à jour'}
                   </motion.button>
                 </div>
               </div>
@@ -2936,7 +3008,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     color: '#1e293b',
                     wordBreak: 'break-all'
                   }}>
-                    https://studybot.emlyon.com/chat?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9
+                    {config?.baseUrl || 'http://localhost:5173'}/chat?token={config?.token || 'loading...'}
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px' }}>
@@ -2954,9 +3026,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         fontWeight: '600',
                         cursor: 'pointer'
                       }}
-                      onClick={() => {
-                        navigator.clipboard.writeText('https://studybot.emlyon.com/chat?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9');
-                        // Ici on pourrait ajouter une notification de succès
+                      onClick={async () => {
+                        try {
+                          const links = await generateLinks();
+                          navigator.clipboard.writeText(links.directLink);
+                          // TODO: Ajouter une notification de succès
+                        } catch (error) {
+                          console.error('❌ Erreur lors de la génération du lien:', error);
+                        }
                       }}
                     >
                       📋 Copier le Lien
@@ -2973,10 +3050,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         borderRadius: '8px',
                         fontSize: '14px',
                         fontWeight: '600',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        opacity: configLoading ? 0.6 : 1
+                      }}
+                      disabled={configLoading}
+                      onClick={async () => {
+                        try {
+                          await regenerateToken();
+                          // TODO: Ajouter une notification de succès
+                        } catch (error) {
+                          console.error('❌ Erreur lors de la régénération:', error);
+                        }
                       }}
                     >
-                      🔄 Regénérer
+                      🔄 {configLoading ? 'Régénération...' : 'Regénérer'}
                     </motion.button>
                   </div>
                 </div>
