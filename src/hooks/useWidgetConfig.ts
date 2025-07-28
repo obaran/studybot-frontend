@@ -17,6 +17,7 @@ interface WidgetConfig {
   position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   language: string;
   apiUrl: string;
+  refetch?: () => void;
 }
 
 const DEFAULT_CONFIG: WidgetConfig = {
@@ -84,6 +85,38 @@ export function useWidgetConfig(token?: string) {
     fetchConfig();
   }, [token]);
 
+  // 🔄 Actualisation automatique sur focus de la fenêtre
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('🔄 Focus détecté, actualisation de la configuration...');
+      refetchConfig();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  // 🎯 Écoute de l'événement personnalisé pour actualisation immédiate après sauvegarde admin
+  useEffect(() => {
+    const handleConfigUpdate = () => {
+      console.log('🎯 Événement widgetConfigUpdated détecté, actualisation immédiate...');
+      refetchConfig();
+    };
+
+    window.addEventListener('widgetConfigUpdated', handleConfigUpdate);
+    return () => window.removeEventListener('widgetConfigUpdated', handleConfigUpdate);
+  }, []);
+
+  // ⏰ Polling périodique toutes les 30 secondes
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('⏰ Polling automatique de la configuration...');
+      refetchConfig();
+    }, 30000); // 30 secondes
+
+    return () => clearInterval(interval);
+  }, []);
+
   // Fonction pour recharger la configuration
   const refetchConfig = () => {
     const fetchConfig = async () => {
@@ -131,6 +164,6 @@ export function useWidgetConfig(token?: string) {
     config,
     loading,
     error,
-    refetchConfig
+    refetch: refetchConfig
   };
 }

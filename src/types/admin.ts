@@ -142,6 +142,7 @@ export interface BotConfiguration {
   organization: string;
   welcomeMessage: string;
   footerText: string;
+  footerLinkText?: string;
   footerLink?: string;
   botAvatarUrl?: string;
   userAvatarUrl?: string;

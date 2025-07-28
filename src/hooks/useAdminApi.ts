@@ -291,6 +291,7 @@ export function useConfiguration() {
   const updateConfig = useCallback(async (data: {
     welcomeMessage?: string;
     footerText?: string;
+    footerLinkText?: string;
     footerLink?: string;
     primaryColor?: string;
     secondaryColor?: string;

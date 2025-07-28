@@ -1024,7 +1024,7 @@ const ChatOnly: React.FC = () => {
                 backgroundColor: 'white',
                 borderRadius: window.innerWidth <= 700 ? '0' : '12px',
                 boxShadow: isResizing 
-                  ? '0 15px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px #e2001a' 
+                  ? `0 15px 40px rgba(0, 0, 0, 0.3), 0 0 0 2px ${widgetConfig.primaryColor}` 
                   : '0 10px 30px rgba(0, 0, 0, 0.15)',
                 display: 'flex',
                 flexDirection: 'column',
@@ -1067,7 +1067,7 @@ const ChatOnly: React.FC = () => {
                       left: 0,
                       width: '16px',
                       height: '16px',
-                      background: 'linear-gradient(45deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      background: `linear-gradient(45deg, ${widgetConfig.primaryColor} 0%, ${widgetConfig.primaryColor} 50%, transparent 50%)`,
                       cursor: 'nw-resize',
                       borderTopLeftRadius: '12px',
                       opacity: widgetHovered || isResizing ? 0.8 : 0,
@@ -1085,7 +1085,7 @@ const ChatOnly: React.FC = () => {
                       right: 0,
                       width: '16px',
                       height: '16px',
-                      background: 'linear-gradient(135deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      background: `linear-gradient(135deg, ${widgetConfig.primaryColor} 0%, ${widgetConfig.primaryColor} 50%, transparent 50%)`,
                       cursor: 'ne-resize',
                       borderTopRightRadius: '12px',
                       opacity: widgetHovered || isResizing ? 0.8 : 0,
@@ -1103,7 +1103,7 @@ const ChatOnly: React.FC = () => {
                       left: 0,
                       width: '16px',
                       height: '16px',
-                      background: 'linear-gradient(-45deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      background: `linear-gradient(-45deg, ${widgetConfig.primaryColor} 0%, ${widgetConfig.primaryColor} 50%, transparent 50%)`,
                       cursor: 'sw-resize',
                       borderBottomLeftRadius: '12px',
                       opacity: widgetHovered || isResizing ? 0.8 : 0,
@@ -1121,7 +1121,7 @@ const ChatOnly: React.FC = () => {
                       right: 0,
                       width: '16px',
                       height: '16px',
-                      background: 'linear-gradient(225deg, #e2001a 0%, #e2001a 50%, transparent 50%)',
+                      background: `linear-gradient(225deg, ${widgetConfig.primaryColor} 0%, ${widgetConfig.primaryColor} 50%, transparent 50%)`,
                       cursor: 'se-resize',
                       borderBottomRightRadius: '12px',
                       opacity: widgetHovered || isResizing ? 0.8 : 0,
@@ -1251,6 +1251,7 @@ const ChatOnly: React.FC = () => {
                   position: 'relative',
                   zIndex: 1
                 }}>
+
                   {/* Bouton Reset conversation - style discret comme la croix */}
                   <motion.button
                     whileHover={{ scale: 1.1, rotate: -90 }}
@@ -1660,20 +1661,55 @@ const ChatOnly: React.FC = () => {
                   backgroundColor: '#f8f9fa'
                 }}
               >
-                Powered by{' '}
-                <motion.a 
-                  whileHover={{ scale: 1.05 }}
-                  href="https://em-lyon.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    color: '#d4a94e',
-                    textDecoration: 'none',
-                    fontWeight: '500'
-                  }}
-                >
-                  emlyon business school
-                </motion.a>
+                {/* Format: "Texte avant|Texte du lien" ou juste "Texte avant" */}
+                {(() => {
+                  const footerText = widgetConfig.footerText || 'Powered by';
+                  const footerLink = widgetConfig.footerLink || 'https://emlyon.com';
+                  
+                  // Si le footerText contient un pipe |, séparer le texte avant et le texte du lien
+                  if (footerText.includes('|')) {
+                    const [beforeText, linkText] = footerText.split('|');
+                    return (
+                      <>
+                        {beforeText.trim()}{' '}
+                        <motion.a 
+                          whileHover={{ scale: 1.05 }}
+                          href={footerLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: widgetConfig.secondaryColor || '#d4a94e',
+                            textDecoration: 'none',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {linkText.trim()}
+                        </motion.a>
+                      </>
+                    );
+                  } else {
+                    // Sinon, utiliser le footerText comme texte avant + nom de domaine comme texte du lien
+                    const linkText = footerLink.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'emlyon business school';
+                    return (
+                      <>
+                        {footerText}{' '}
+                        <motion.a 
+                          whileHover={{ scale: 1.05 }}
+                          href={footerLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            color: widgetConfig.secondaryColor || '#d4a94e',
+                            textDecoration: 'none',
+                            fontWeight: '500'
+                          }}
+                        >
+                          {linkText}
+                        </motion.a>
+                      </>
+                    );
+                  }
+                })()}
               </motion.div>
             </motion.div>
           )}

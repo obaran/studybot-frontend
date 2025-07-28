@@ -193,6 +193,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [configDraft, setConfigDraft] = React.useState({
     welcomeMessage: '',
     footerText: '',
+    footerLinkText: '',
     footerLink: ''
   });
   const [hasConfigChanges, setHasConfigChanges] = React.useState(false);
@@ -228,6 +229,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   
   // Hook pour récupérer le nombre total de conversations pour le badge
   const { data: conversationsCountData, refetch: refetchConversationsCount } = useConversationsCount();
+
+  // 🔄 Synchroniser configDraft avec la configuration chargée
+  React.useEffect(() => {
+    if (config && !configLoading) {
+      setConfigDraft({
+        welcomeMessage: config.welcomeMessage || '',
+        footerText: config.footerText || '',
+        footerLinkText: config.footerLinkText || 'emlyon business school',
+        footerLink: config.footerLink || ''
+      });
+      setHasConfigChanges(false);
+    }
+  }, [config, configLoading]);
   const conversationsCount = conversationsCountData?.total || 0;
 
   // Fonction de filtrage unifiée pour éviter la duplication et assurer la cohérence
@@ -2723,6 +2737,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                                 });
                                 setHasConfigChanges(false);
                                 setEditingSection(null);
+                                // 🔄 Déclencher l'actualisation automatique du widget
+                                console.log('✅ Message de bienvenue sauvegardé, actualisation du widget...');
+                                // Déclencher un événement personnalisé pour actualiser tous les widgets
+                                window.dispatchEvent(new CustomEvent('widgetConfigUpdated'));
                               } catch (error) {
                                 console.error('❌ Erreur lors de la sauvegarde:', error);
                               }
@@ -2826,9 +2844,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                           setConfigDraft(prev => ({ ...prev, footerText: e.target.value }));
                           setHasConfigChanges(true);
                         }}
-                        placeholder="Texte affiché dans le footer"
+                        placeholder="Texte avant le lien (ex: Powered by)"
                         disabled={configLoading}
                         autoFocus
+                      />
+
+                      {/* Texte du lien */}
+                      <input
+                        type="text"
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '2px solid #e2001a',
+                          fontSize: '14px',
+                          outline: 'none',
+                          marginBottom: '12px',
+                          backgroundColor: '#fffef7',
+                          transition: 'all 0.3s ease'
+                        }}
+                        value={configDraft.footerLinkText}
+                        onChange={(e) => {
+                          setConfigDraft(prev => ({ ...prev, footerLinkText: e.target.value }));
+                          setHasConfigChanges(true);
+                        }}
+                        placeholder="Texte du lien (ex: emlyon business school)"
+                        disabled={configLoading}
                       />
 
                       {/* Lien (optionnel) */}
@@ -2906,12 +2947,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                             try {
                               await updateConfig({
                                 footerText: configDraft.footerText,
+                                footerLinkText: configDraft.footerLinkText,
                                 footerLink: configDraft.footerLink
                               });
                               setHasConfigChanges(false);
                               setEditingSection(null);
+                              
+                              // Déclencher l'actualisation automatique du widget
+                              console.log('✅ Configuration sauvegardée, actualisation du widget...');
+                              // Déclencher un événement personnalisé pour actualiser tous les widgets
+                              window.dispatchEvent(new CustomEvent('widgetConfigUpdated'));
                             } catch (error) {
-                              console.error('❌ Erreur lors de la mise à jour:', error);
+                              console.error('❌ Erreur lors de la sauvegarde:', error);
                             }
                           }}
                         >
@@ -2932,10 +2979,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         marginBottom: '12px'
                       }}>
                         <div style={{ marginBottom: '8px' }}>
-                          <strong>Texte:</strong> {config?.footerText || "Chargement..."}
+                          <strong>Texte avant le lien:</strong> {config?.footerText || "Chargement..."}
+                        </div>
+                        <div style={{ marginBottom: '8px' }}>
+                          <strong>Texte du lien:</strong> {config?.footerLinkText || "emlyon business school"}
                         </div>
                         <div>
-                          <strong>Lien:</strong> {config?.footerLink ? (
+                          <strong>URL du lien:</strong> {config?.footerLink ? (
                             <a href={config.footerLink} target="_blank" rel="noopener noreferrer" style={{ color: '#e2001a', textDecoration: 'none' }}>
                               {config.footerLink}
                             </a>
