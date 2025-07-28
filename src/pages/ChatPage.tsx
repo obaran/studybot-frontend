@@ -1,9 +1,120 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useWidgetConfig } from '../hooks/useWidgetConfig';
 
 const ChatPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const token = searchParams.get('token');
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  
+  // Valider le token via l'API
+  const { config, loading, error } = useWidgetConfig(token || undefined);
+
+  // 🔄 Communication cross-frame pour synchronisation configuration
+  useEffect(() => {
+    const handleConfigUpdate = () => {
+      console.log('🎯 [ChatPage] Événement widgetConfigUpdated détecté, propagation vers iframe...');
+      
+      // Propager l'événement vers l'iframe ChatOnly
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({
+          type: 'WIDGET_CONFIG_UPDATED',
+          timestamp: Date.now()
+        }, '*');
+      }
+    };
+
+    // Écouter les événements de configuration du parent
+    window.addEventListener('widgetConfigUpdated', handleConfigUpdate);
+    
+    // Écouter les messages de l'iframe pour synchronisation bidirectionnelle
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'WIDGET_CONFIG_UPDATED') {
+        console.log('🔄 [ChatPage] Message reçu de l\'iframe, synchronisation...');
+        // L'iframe nous informe d'un changement, on peut réagir si nécessaire
+      }
+    };
+    
+    window.addEventListener('message', handleMessage);
+    
+    return () => {
+      window.removeEventListener('widgetConfigUpdated', handleConfigUpdate);
+      window.removeEventListener('message', handleMessage);
+    };
+  }, []);
+
+  // États d'affichage conditionnel pour validation token
+  if (token && loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f8f9fa',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'Poppins', sans-serif"
+      }}>
+        <div style={{
+          textAlign: 'center',
+          color: '#666'
+        }}>
+          <div style={{
+            fontSize: '18px',
+            marginBottom: '12px'
+          }}>
+            ⏳ Validation du token en cours...
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: '#999'
+          }}>
+            Vérification de l'accès
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (token && (error || !config)) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        backgroundColor: '#f8f9fa',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontFamily: "'Poppins', sans-serif"
+      }}>
+        <div style={{
+          textAlign: 'center',
+          color: '#e74c3c',
+          maxWidth: '400px',
+          padding: '20px'
+        }}>
+          <div style={{
+            fontSize: '48px',
+            marginBottom: '16px'
+          }}>
+            🚫
+          </div>
+          <div style={{
+            fontSize: '24px',
+            fontWeight: '600',
+            marginBottom: '12px'
+          }}>
+            Accès refusé
+          </div>
+          <div style={{
+            fontSize: '16px',
+            color: '#666',
+            lineHeight: '1.5'
+          }}>
+            Token d'accès invalide ou expiré. Veuillez contacter l'administrateur pour obtenir un nouveau lien.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{
@@ -75,6 +186,7 @@ const ChatPage: React.FC = () => {
 
       {/* Iframe vers ChatOnly (source unique) */}
       <iframe
+        ref={iframeRef}
         src={`/bot${token ? `?token=${token}` : ''}`}
         style={{
           position: 'fixed',
@@ -92,6 +204,7 @@ const ChatPage: React.FC = () => {
         onLoad={(e) => {
           // Permettre les interactions avec l'iframe une fois chargée
           e.currentTarget.style.pointerEvents = 'auto';
+          console.log('🎯 [ChatPage] Iframe ChatOnly chargée et prête pour la synchronisation');
         }}
       />
     </div>

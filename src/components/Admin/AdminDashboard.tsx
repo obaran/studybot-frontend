@@ -3160,6 +3160,103 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
               </div>
             </motion.div>
 
+            {/* Gestion des Tokens - SECTION ADMIN */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.25 }}
+              style={{
+                background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+                borderRadius: '16px',
+                padding: '24px',
+                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.06)',
+                border: '1px solid #f59e0b',
+                marginBottom: '24px'
+              }}
+            >
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '700',
+                color: '#92400e',
+                margin: '0 0 16px 0',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px'
+              }}>
+                🔐 Gestion des Tokens de Sécurité
+              </h3>
+              
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                flexWrap: 'wrap'
+              }}>
+                <div style={{
+                  fontSize: '14px',
+                  color: '#78350f',
+                  flex: 1,
+                  minWidth: '200px'
+                }}>
+                  <strong>Token actuel :</strong> {config?.token ? `${config.token.substring(0, 12)}...${config.token.substring(-8)}` : 'Chargement...'}
+                </div>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  style={{
+                    padding: '10px 20px',
+                    background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '14px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    opacity: configLoading ? 0.6 : 1
+                  }}
+                  disabled={configLoading}
+                  onClick={async () => {
+                    try {
+                      console.log('🔄 Régénération du token de sécurité...');
+                      await regenerateToken();
+                      console.log('✅ Token régénéré avec succès!');
+                      // TODO: Ajouter une notification toast
+                    } catch (error) {
+                      console.error('❌ Erreur lors de la régénération du token:', error);
+                    }
+                  }}
+                >
+                  <svg 
+                    width="16" 
+                    height="16" 
+                    viewBox="0 0 24 24" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="2" 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round"
+                    style={{ marginRight: '8px' }}
+                  >
+                    <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                    <path d="M21 3v5h-5" />
+                    <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                    <path d="M3 21v-5h5" />
+                  </svg>
+                  {configLoading ? 'Régénération...' : 'Regénérer Token'}
+                </motion.button>
+              </div>
+              
+              <div style={{
+                fontSize: '12px',
+                color: '#78350f',
+                marginTop: '12px',
+                fontStyle: 'italic'
+              }}>
+                ⚠️ <strong>ATTENTION :</strong> La régénération du token invalidera tous les liens d'intégration existants (liens directs, codes iframe et embed). Vous devrez redistribuer les nouveaux codes d'intégration.
+              </div>
+            </motion.div>
+
             {/* Génération de liens et intégrations - EN BAS */}
             <motion.div
               initial={{ y: 20, opacity: 0 }}
@@ -3230,64 +3327,60 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     color: '#1e293b',
                     wordBreak: 'break-all'
                   }}>
-                    {config?.baseUrl || 'http://localhost:5173'}/chat?token={config?.token || 'loading...'}
+                    {configLoading ? (
+                      <span style={{ color: '#64748b', fontStyle: 'italic' }}>⏳ Chargement de la configuration...</span>
+                    ) : config ? (
+                      `${window.location.origin}/chat?token=${config.token}`
+                    ) : (
+                      <span style={{ color: '#ef4444' }}>❌ Erreur de chargement de la configuration</span>
+                    )}
                   </div>
+                  
+                  {/* Debug info - à supprimer en production */}
+                  {config && (
+                    <div style={{
+                      fontSize: '11px',
+                      color: '#64748b',
+                      marginBottom: '8px',
+                      fontFamily: 'monospace'
+                    }}>
+                      🔍 Debug: Token = {config.token?.substring(0, 20)}..., API = {config.apiUrl}
+                    </div>
+                  )}
 
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        flex: 1,
-                        padding: '12px 16px',
-                        background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                      onClick={async () => {
-                        try {
-                          const links = await generateLinks();
-                          navigator.clipboard.writeText(links.directLink);
-                          // TODO: Ajouter une notification de succès
-                        } catch (error) {
-                          console.error('❌ Erreur lors de la génération du lien:', error);
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    style={{
+                      width: '100%',
+                      padding: '12px 16px',
+                      background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      cursor: 'pointer'
+                    }}
+                    onClick={async () => {
+                      try {
+                        if (!config?.token) {
+                          console.error('❌ Token de configuration manquant');
+                          return;
                         }
-                      }}
-                    >
-                      📋 Copier le Lien
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        padding: '12px 16px',
-                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '8px',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        opacity: configLoading ? 0.6 : 1
-                      }}
-                      disabled={configLoading}
-                      onClick={async () => {
-                        try {
-                          await regenerateToken();
-                          // TODO: Ajouter une notification de succès
-                        } catch (error) {
-                          console.error('❌ Erreur lors de la régénération:', error);
-                        }
-                      }}
-                    >
-                      🔄 {configLoading ? 'Régénération...' : 'Regénérer'}
-                    </motion.button>
-                  </div>
+                        
+                        const directLink = `${window.location.origin}/chat?token=${config.token}`;
+                        await navigator.clipboard.writeText(directLink);
+                        
+                        console.log('✅ Lien direct copié dans le presse-papiers!');
+                        // TODO: Ajouter une notification toast
+                      } catch (error) {
+                        console.error('❌ Erreur lors de la copie du lien:', error);
+                      }
+                    }}
+                  >
+                    📋 Copier le Lien
+                  </motion.button>
                 </div>
 
                 {/* Code Iframe */}
@@ -3330,13 +3423,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     color: '#1e293b',
                     lineHeight: '1.5'
                   }}>
-                    {`<iframe
-  src="https://studybot.emlyon.com/embed"
+                    {config ? `<iframe
+  src="${window.location.origin}/embed?token=${config.token}"
   width="100%"
   height="600"
   frameborder="0"
   allow="microphone">
-</iframe>`}
+</iframe>` : 'Chargement...'}
                   </div>
 
                   <motion.button
@@ -3353,8 +3446,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                       fontWeight: '600',
                       cursor: 'pointer'
                     }}
-                    onClick={() => {
-                      navigator.clipboard.writeText(`<iframe src="https://studybot.emlyon.com/embed" width="100%" height="600" frameborder="0" allow="microphone"></iframe>`);
+                    onClick={async () => {
+                      try {
+                        if (!config?.token) {
+                          console.error('❌ Token de configuration manquant');
+                          return;
+                        }
+                        
+                        const iframeCode = `<iframe src="${window.location.origin}/embed?token=${config.token}" width="100%" height="600" frameborder="0" allow="microphone"></iframe>`;
+                        await navigator.clipboard.writeText(iframeCode);
+                        
+                        console.log('✅ Code iframe copié dans le presse-papiers!');
+                        // TODO: Ajouter une notification toast
+                      } catch (error) {
+                        console.error('❌ Erreur lors de la copie du code iframe:', error);
+                      }
                     }}
                   >
                     📋 Copier le Code Iframe
@@ -3404,33 +3510,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     maxHeight: '200px',
                     overflowY: 'auto'
                   }}>
-                    {`<!-- StudyBot emlyon - Code d'intégration complet -->
+                    {config ? `<!-- StudyBot emlyon - Code d'intégration complet -->
 <div id="studybot-container"></div>
 <script>
 (function() {
   // Configuration StudyBot
   window.StudyBotConfig = {
-    apiUrl: 'https://studybot.emlyon.com',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
+    apiUrl: '${window.location.origin}',
+    token: '${config.token}',
     theme: {
-      primaryColor: '#e2001a',
-      position: 'bottom-right',
-      language: 'fr'
+      primaryColor: '${config.primaryColor || '#e2001a'}',
+      secondaryColor: '${config.secondaryColor || '#ffffff'}',
+      position: '${config.position || 'bottom-right'}',
+      language: '${config.language || 'fr'}'
     },
     welcome: {
-      message: 'Bonjour ! Je suis StudyBot, votre assistant emlyon. Comment puis-je vous aider ?',
+      message: '${config.welcomeMessage || 'Bonjour ! Je suis StudyBot, votre assistant emlyon. Comment puis-je vous aider ?'}',
       delay: 2000
+    },
+    footer: {
+      text: '${config.footerText || 'Powered by emlyon business school'}',
+      linkText: '${config.footerLinkText || 'En savoir plus'}',
+      link: '${config.footerLink || 'https://emlyon.com'}'
     }
   };
 
   // Chargement du widget
   var script = document.createElement('script');
-  script.src = 'https://studybot.emlyon.com/widget.js';
+  script.src = '${config.apiUrl || window.location.origin}/widget.js';
   script.async = true;
   document.head.appendChild(script);
 })();
 </script>
-<!-- Fin StudyBot -->`}
+<!-- Fin StudyBot -->` : 'Chargement de la configuration...'}
                   </div>
 
                   <div style={{ display: 'flex', gap: '12px' }}>
@@ -3448,24 +3560,50 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                         fontWeight: '600',
                         cursor: 'pointer'
                       }}
-                      onClick={() => {
-                        const embedCode = `<!-- StudyBot emlyon - Code d'intégration complet -->
+                      onClick={async () => {
+                        try {
+                          if (!config?.token) {
+                            console.error('❌ Token de configuration manquant');
+                            return;
+                          }
+                          
+                          const embedCode = `<!-- StudyBot emlyon - Code d'intégration complet -->
 <div id="studybot-container"></div>
 <script>
 (function() {
   window.StudyBotConfig = {
-    apiUrl: 'https://studybot.emlyon.com',
-    token: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
-    theme: { primaryColor: '#e2001a', position: 'bottom-right', language: 'fr' },
-    welcome: { message: 'Bonjour ! Je suis StudyBot, votre assistant emlyon.', delay: 2000 }
+    apiUrl: '${config.apiUrl || window.location.origin}',
+    token: '${config.token}',
+    theme: {
+      primaryColor: '${config.primaryColor || '#e2001a'}',
+      secondaryColor: '${config.secondaryColor || '#ffffff'}',
+      position: '${config.position || 'bottom-right'}',
+      language: '${config.language || 'fr'}'
+    },
+    welcome: {
+      message: '${config.welcomeMessage || 'Bonjour ! Je suis StudyBot, votre assistant emlyon. Comment puis-je vous aider ?'}',
+      delay: 2000
+    },
+    footer: {
+      text: '${config.footerText || 'Powered by emlyon business school'}',
+      linkText: '${config.footerLinkText || 'En savoir plus'}',
+      link: '${config.footerLink || 'https://emlyon.com'}'
+    }
   };
   var script = document.createElement('script');
-  script.src = 'https://studybot.emlyon.com/widget.js';
+  script.src = '${config.apiUrl || window.location.origin}/widget.js';
   script.async = true;
   document.head.appendChild(script);
 })();
-</script>`;
-                        navigator.clipboard.writeText(embedCode);
+</script>
+<!-- Fin StudyBot -->`;
+                          
+                          await navigator.clipboard.writeText(embedCode);
+                          console.log('✅ Code embed complet copié dans le presse-papiers!');
+                          // TODO: Ajouter une notification toast
+                        } catch (error) {
+                          console.error('❌ Erreur lors de la copie du code embed:', error);
+                        }
                       }}
                     >
                       📋 Copier le Code Embed

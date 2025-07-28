@@ -312,8 +312,10 @@ export function useConfiguration() {
   }, []);
 
   const regenerateToken = useCallback(async () => {
-    return await adminApi.regenerateIntegrationToken();
-  }, []);
+    const result = await adminApi.regenerateIntegrationToken();
+    await refetch(); // Recharger la configuration pour avoir le nouveau token
+    return result;
+  }, [refetch]);
 
   return {
     config,

@@ -32,7 +32,7 @@ const DEFAULT_CONFIG: WidgetConfig = {
   apiUrl: API_CONFIG.BASE_URL
 };
 
-export function useWidgetConfig(token?: string) {
+export const useWidgetConfig = (token?: string) => {
   const [config, setConfig] = useState<WidgetConfig>(DEFAULT_CONFIG);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,10 +45,8 @@ export function useWidgetConfig(token?: string) {
 
         let url: string;
         if (token) {
-          // Configuration publique via token
           url = `${API_CONFIG.BASE_URL}/widget/config/${token}`;
         } else {
-          // Configuration admin (pour le dashboard)
           url = `${API_CONFIG.ADMIN_BASE_URL}/configuration`;
         }
 
@@ -83,7 +81,7 @@ export function useWidgetConfig(token?: string) {
     };
 
     fetchConfig();
-  }, [token]);
+  }, []);
 
   // 🔄 Actualisation automatique sur focus de la fenêtre
   useEffect(() => {
@@ -105,6 +103,27 @@ export function useWidgetConfig(token?: string) {
 
     window.addEventListener('widgetConfigUpdated', handleConfigUpdate);
     return () => window.removeEventListener('widgetConfigUpdated', handleConfigUpdate);
+  }, []);
+
+  // 🌐 Écoute des messages cross-frame pour synchronisation iframe
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.type === 'WIDGET_CONFIG_UPDATED') {
+        console.log('🌐 [ChatOnly] Message cross-frame reçu, actualisation configuration...');
+        refetchConfig();
+        
+        // Confirmer la synchronisation au parent
+        if (event.source && typeof event.source.postMessage === 'function') {
+          (event.source as Window).postMessage({
+            type: 'WIDGET_CONFIG_UPDATED_CONFIRMED',
+            timestamp: Date.now()
+          }, '*');
+        }
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, []);
 
   // ⏰ Polling périodique toutes les 30 secondes
