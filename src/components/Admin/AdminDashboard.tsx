@@ -196,6 +196,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
     footerLink: ''
   });
   const [hasConfigChanges, setHasConfigChanges] = React.useState(false);
+  const [editingSection, setEditingSection] = React.useState<string | null>(null); // Pour gérer quel champ est en édition
 
   // Hook pour la gestion des prompts système (remplace les données mockées)
   const {
@@ -2620,7 +2621,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                 gap: '24px'
               }}>
                 {/* Message de Bienvenue */}
-                <div>
+                <div style={{
+                  position: 'relative'
+                }}>
                   <label style={{
                     fontSize: '14px',
                     fontWeight: '600',
@@ -2630,79 +2633,167 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                   }}>
                     Message de Bienvenue
                   </label>
-                  <textarea
-                    style={{
-                      width: '100%',
-                      height: '120px',
-                      padding: '16px',
-                      borderRadius: '8px',
-                      border: '2px solid #e2e8f0',
-                      fontSize: '14px',
-                      fontFamily: 'Inter, sans-serif',
-                      resize: 'vertical',
-                      outline: 'none',
-                      transition: 'border-color 0.3s ease'
-                    }}
-                    value={hasConfigChanges ? configDraft.welcomeMessage : (config?.welcomeMessage || "👋 Bienvenue ! Je suis votre assistant virtuel emlyon...")}
-                    onChange={(e) => {
-                      setConfigDraft(prev => ({ ...prev, welcomeMessage: e.target.value }));
-                      setHasConfigChanges(true);
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
-                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                    placeholder="Entrez votre message de bienvenue..."
-                    disabled={configLoading}
-                  />
                   
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '12px'
-                  }}>
-                    <span style={{
-                      fontSize: '12px',
-                      color: '#64748b'
-                    }}>
-                      Délai d'affichage : 2 secondes
-                    </span>
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      style={{
-                        padding: '8px 16px',
-                        background: hasConfigChanges 
-                          ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
-                          : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
+                  {editingSection === 'welcome' ? (
+                    // Mode édition
+                    <>
+                      <textarea
+                        style={{
+                          width: '100%',
+                          height: '140px',
+                          padding: '16px',
+                          borderRadius: '8px',
+                          border: '2px solid #e2001a',
+                          fontSize: '14px',
+                          fontFamily: 'Inter, sans-serif',
+                          resize: 'vertical',
+                          outline: 'none',
+                          transition: 'all 0.3s ease',
+                          backgroundColor: '#fffef7'
+                        }}
+                        value={configDraft.welcomeMessage}
+                        onChange={(e) => {
+                          setConfigDraft(prev => ({ ...prev, welcomeMessage: e.target.value }));
+                          setHasConfigChanges(true);
+                        }}
+                        placeholder="Entrez votre message de bienvenue complet..."
+                        disabled={configLoading}
+                        autoFocus
+                      />
+                      
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: '12px'
+                      }}>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#64748b'
+                        }}>
+                          💡 Délai d'affichage : 2 secondes
+                        </span>
+                        
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {/* Bouton Annuler */}
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                              padding: '8px 16px',
+                              background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              cursor: 'pointer'
+                            }}
+                            onClick={() => {
+                              setConfigDraft(prev => ({ ...prev, welcomeMessage: config?.welcomeMessage || '' }));
+                              setHasConfigChanges(false);
+                              setEditingSection(null);
+                            }}
+                          >
+                            ❌ Annuler
+                          </motion.button>
+                          
+                          {/* Bouton Sauvegarder */}
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            style={{
+                              padding: '8px 16px',
+                              background: hasConfigChanges 
+                                ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
+                                : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '6px',
+                              fontSize: '14px',
+                              fontWeight: '600',
+                              cursor: hasConfigChanges ? 'pointer' : 'not-allowed',
+                              opacity: configLoading ? 0.6 : 1
+                            }}
+                            disabled={!hasConfigChanges || configLoading}
+                            onClick={async () => {
+                              try {
+                                await updateConfig({
+                                  welcomeMessage: configDraft.welcomeMessage
+                                });
+                                setHasConfigChanges(false);
+                                setEditingSection(null);
+                              } catch (error) {
+                                console.error('❌ Erreur lors de la sauvegarde:', error);
+                              }
+                            }}
+                          >
+                            💾 {configLoading ? 'Sauvegarde...' : 'Sauvegarder'}
+                          </motion.button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    // Mode affichage
+                    <>
+                      <div style={{
+                        width: '100%',
+                        minHeight: '120px',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: '2px solid #e2e8f0',
                         fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: hasConfigChanges ? 'pointer' : 'not-allowed',
-                        opacity: configLoading ? 0.6 : 1
-                      }}
-                      disabled={!hasConfigChanges || configLoading}
-                      onClick={async () => {
-                        try {
-                          await updateConfig({
-                            welcomeMessage: configDraft.welcomeMessage
-                          });
-                          setHasConfigChanges(false);
-                          // Reset draft to current config
-                          setConfigDraft(prev => ({ ...prev, welcomeMessage: config?.welcomeMessage || '' }));
-                        } catch (error) {
-                          console.error('❌ Erreur lors de la sauvegarde:', error);
-                        }
-                      }}
-                    >
-                      💾 {configLoading ? 'Sauvegarde...' : 'Sauvegarder'}
-                    </motion.button>
-                  </div>
+                        fontFamily: 'Inter, sans-serif',
+                        backgroundColor: '#f8fafc',
+                        color: '#475569',
+                        lineHeight: '1.6',
+                        whiteSpace: 'pre-wrap'
+                      }}>
+                        {config?.welcomeMessage || "Chargement du message de bienvenue..."}
+                      </div>
+                      
+                      <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginTop: '12px'
+                      }}>
+                        <span style={{
+                          fontSize: '12px',
+                          color: '#64748b'
+                        }}>
+                          💡 Délai d'affichage : 2 secondes
+                        </span>
+                        
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          style={{
+                            padding: '8px 16px',
+                            background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => {
+                            setConfigDraft(prev => ({ ...prev, welcomeMessage: config?.welcomeMessage || '' }));
+                            setEditingSection('welcome');
+                          }}
+                        >
+                          ✏️ Modifier
+                        </motion.button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* Message Footer Widget */}
-                <div>
+                <div style={{
+                  position: 'relative'
+                }}>
                   <label style={{
                     fontSize: '14px',
                     fontWeight: '600',
@@ -2710,98 +2801,179 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     marginBottom: '8px',
                     display: 'block'
                   }}>
-                    Message Footer Widget
+                    Footer du Chatbot
                   </label>
                   
-                  {/* Texte affiché */}
-                  <input
-                    type="text"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: '2px solid #e2e8f0',
-                      fontSize: '14px',
-                      outline: 'none',
-                      marginBottom: '12px',
-                      transition: 'border-color 0.3s ease'
-                    }}
-                    value={hasConfigChanges ? configDraft.footerText : (config?.footerText || "Powered by emlyon business school")}
-                    onChange={(e) => {
-                      setConfigDraft(prev => ({ ...prev, footerText: e.target.value }));
-                      setHasConfigChanges(true);
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
-                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                    placeholder="Texte affiché dans le footer"
-                    disabled={configLoading}
-                  />
+                  {editingSection === 'footer' ? (
+                    // Mode édition
+                    <>
+                      {/* Texte affiché */}
+                      <input
+                        type="text"
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '2px solid #e2001a',
+                          fontSize: '14px',
+                          outline: 'none',
+                          marginBottom: '12px',
+                          backgroundColor: '#fffef7',
+                          transition: 'all 0.3s ease'
+                        }}
+                        value={configDraft.footerText}
+                        onChange={(e) => {
+                          setConfigDraft(prev => ({ ...prev, footerText: e.target.value }));
+                          setHasConfigChanges(true);
+                        }}
+                        placeholder="Texte affiché dans le footer"
+                        disabled={configLoading}
+                        autoFocus
+                      />
 
-                  {/* Lien (optionnel) */}
-                  <input
-                    type="url"
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: '2px solid #e2e8f0',
-                      fontSize: '14px',
-                      outline: 'none',
-                      marginBottom: '12px',
-                      transition: 'border-color 0.3s ease'
-                    }}
-                    value={hasConfigChanges ? configDraft.footerLink : (config?.footerLink || "https://emlyon.com")}
-                    onChange={(e) => {
-                      setConfigDraft(prev => ({ ...prev, footerLink: e.target.value }));
-                      setHasConfigChanges(true);
-                    }}
-                    onFocus={(e) => e.target.style.borderColor = '#e2001a'}
-                    onBlur={(e) => e.target.style.borderColor = '#e2e8f0'}
-                    placeholder="Lien de redirection (optionnel)"
-                    disabled={configLoading}
-                  />
+                      {/* Lien (optionnel) */}
+                      <input
+                        type="url"
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          borderRadius: '8px',
+                          border: '2px solid #e2001a',
+                          fontSize: '14px',
+                          outline: 'none',
+                          marginBottom: '12px',
+                          backgroundColor: '#fffef7',
+                          transition: 'all 0.3s ease'
+                        }}
+                        value={configDraft.footerLink}
+                        onChange={(e) => {
+                          setConfigDraft(prev => ({ ...prev, footerLink: e.target.value }));
+                          setHasConfigChanges(true);
+                        }}
+                        placeholder="Lien de redirection (optionnel)"
+                        disabled={configLoading}
+                      />
 
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: hasConfigChanges 
-                        ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
-                        : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: hasConfigChanges ? 'pointer' : 'not-allowed',
-                      opacity: configLoading ? 0.6 : 1
-                    }}
-                    disabled={!hasConfigChanges || configLoading}
-                    onClick={async () => {
-                      try {
-                        await updateConfig({
-                          footerText: configDraft.footerText,
-                          footerLink: configDraft.footerLink
-                        });
-                        setHasConfigChanges(false);
-                        // Reset draft to current config
-                        setConfigDraft(prev => ({ 
-                          ...prev, 
-                          footerText: config?.footerText || '',
-                          footerLink: config?.footerLink || ''
-                        }));
-                      } catch (error) {
-                        console.error('❌ Erreur lors de la mise à jour:', error);
-                      }
-                    }}
-                  >
-                    💾 {configLoading ? 'Mise à jour...' : 'Mettre à jour'}
-                  </motion.button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {/* Bouton Annuler */}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => {
+                            setConfigDraft(prev => ({ 
+                              ...prev, 
+                              footerText: config?.footerText || '',
+                              footerLink: config?.footerLink || ''
+                            }));
+                            setHasConfigChanges(false);
+                            setEditingSection(null);
+                          }}
+                        >
+                          ❌ Annuler
+                        </motion.button>
+
+                        {/* Bouton Sauvegarder */}
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            background: hasConfigChanges 
+                              ? 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)'
+                              : 'linear-gradient(135deg, #94a3b8 0%, #64748b 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: '600',
+                            cursor: hasConfigChanges ? 'pointer' : 'not-allowed',
+                            opacity: configLoading ? 0.6 : 1
+                          }}
+                          disabled={!hasConfigChanges || configLoading}
+                          onClick={async () => {
+                            try {
+                              await updateConfig({
+                                footerText: configDraft.footerText,
+                                footerLink: configDraft.footerLink
+                              });
+                              setHasConfigChanges(false);
+                              setEditingSection(null);
+                            } catch (error) {
+                              console.error('❌ Erreur lors de la mise à jour:', error);
+                            }
+                          }}
+                        >
+                          💾 {configLoading ? 'Mise à jour...' : 'Mettre à jour'}
+                        </motion.button>
+                      </div>
+                    </>
+                  ) : (
+                    // Mode affichage
+                    <>
+                      <div style={{
+                        width: '100%',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: '2px solid #e2e8f0',
+                        fontSize: '14px',
+                        backgroundColor: '#f8fafc',
+                        marginBottom: '12px'
+                      }}>
+                        <div style={{ marginBottom: '8px' }}>
+                          <strong>Texte:</strong> {config?.footerText || "Chargement..."}
+                        </div>
+                        <div>
+                          <strong>Lien:</strong> {config?.footerLink ? (
+                            <a href={config.footerLink} target="_blank" rel="noopener noreferrer" style={{ color: '#e2001a', textDecoration: 'none' }}>
+                              {config.footerLink}
+                            </a>
+                          ) : "Aucun lien configuré"}
+                        </div>
+                      </div>
+
+                      <motion.button
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        style={{
+                          width: '100%',
+                          padding: '12px',
+                          background: 'linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontSize: '14px',
+                          fontWeight: '600',
+                          cursor: 'pointer'
+                        }}
+                        onClick={() => {
+                          setConfigDraft(prev => ({ 
+                            ...prev, 
+                            footerText: config?.footerText || '',
+                            footerLink: config?.footerLink || ''
+                          }));
+                          setEditingSection('footer');
+                        }}
+                      >
+                        ✏️ Modifier Footer
+                      </motion.button>
+                    </>
+                  )}
                 </div>
               </div>
             </motion.div>
+
 
             {/* Configuration Logos */}
             <motion.div

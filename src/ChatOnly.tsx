@@ -5,7 +5,8 @@ import StudyBotAPI, { type ChatRequest } from './services/api';
 import TypewriterText from './components/TypewriterText';
 // import AdminDashboard from './components/admin/AdminDashboard'; // Retiré pour ChatOnly
 import { useSession } from './hooks/useSession';
-import { formatBotMessage, containsLinks } from './utils/textUtils';
+import { useWidgetConfig } from './hooks/useWidgetConfig';
+import { formatBotMessage } from './utils/textUtils';
 
 // 🎯 Assets emlyon officiels (depuis flowise-design-reference.js)
 const EMLYON_ASSETS = {
@@ -227,36 +228,33 @@ const ChatOnly: React.FC = () => {
   // 🧠 Hook de gestion de session persistante
   const { sessionId, isNewSession, updateSessionActivity, resetSession } = useSession();
   
+  // 🎛️ Hook de configuration widget (synchronisé avec admin)
+  const { config: widgetConfig, loading: configLoading } = useWidgetConfig();
+  
   // 📜 Référence pour l'auto-scroll
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      type: 'bot',
-      content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
-      feedback: null
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  // 🔄 Gestion des messages selon le type de session
+  // 🔄 Gestion des messages selon le type de session (avec configuration dynamique)
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || configLoading) return;
 
     const messagesKey = `studybot_messages_${sessionId}`;
+    
+    // Créer le message de bienvenue avec la configuration actuelle
+    const createWelcomeMessage = () => ({
+      id: 1,
+      type: 'bot' as const,
+      content: widgetConfig.welcomeMessage,
+      feedback: null
+    });
     
     if (isNewSession) {
       // Nouvelle session : réinitialiser avec message de bienvenue
       console.log('🆕 Nouvelle session détectée, réinitialisation des messages');
-      const welcomeMessages = [
-        {
-          id: 1,
-          type: 'bot' as const,
-          content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
-          feedback: null
-        }
-      ];
+      const welcomeMessages = [createWelcomeMessage()];
       setMessages(welcomeMessages);
       localStorage.setItem(messagesKey, JSON.stringify(welcomeMessages));
     } else {
@@ -269,32 +267,18 @@ const ChatOnly: React.FC = () => {
           console.log('📡 Messages restaurés pour session:', sessionId, '- Nb:', parsedMessages.length);
         } else {
           // Aucun message sauvé : commencer avec bienvenue
-          const welcomeMessages = [
-            {
-              id: 1,
-              type: 'bot' as const,
-              content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
-              feedback: null
-            }
-          ];
+          const welcomeMessages = [createWelcomeMessage()];
           setMessages(welcomeMessages);
           localStorage.setItem(messagesKey, JSON.stringify(welcomeMessages));
         }
       } catch (error) {
         console.error('❌ Erreur restauration messages:', error);
         // Fallback: message de bienvenue
-        const welcomeMessages = [
-          {
-            id: 1,
-            type: 'bot' as const,
-            content: '👋 Bienvenue ! Je suis votre assistant virtuel pour répondre à vos questions administratives. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Envisagez de vérifier les informations importantes. Comment puis-je vous aider aujourd\'hui ?',
-            feedback: null
-          }
-        ];
+        const welcomeMessages = [createWelcomeMessage()];
         setMessages(welcomeMessages);
       }
     }
-  }, [isNewSession, sessionId]);
+  }, [isNewSession, sessionId, widgetConfig.welcomeMessage, configLoading]);
 
   // 💾 Sauvegarde automatique des messages à chaque changement
   useEffect(() => {
