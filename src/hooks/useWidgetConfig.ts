@@ -51,6 +51,13 @@ export const useWidgetConfig = (token?: string) => {
         }
 
         const response = await fetch(url);
+        
+        // 🚨 CORRECTION CRITIQUE: Vérifier le statut HTTP avant de parser JSON
+        if (!response.ok) {
+          console.error(`❌ Erreur HTTP ${response.status} pour l'URL: ${url}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
 
         if (data.success && data.data) {
@@ -68,8 +75,17 @@ export const useWidgetConfig = (token?: string) => {
             apiUrl: data.data.apiUrl || DEFAULT_CONFIG.apiUrl
           });
         } else {
-          console.warn('Configuration non trouvée, utilisation des valeurs par défaut');
-          setConfig(DEFAULT_CONFIG);
+          // SÉCURITÉ CRITIQUE: Distinguer token invalide vs pas de token
+          if (token) {
+            // Token fourni mais invalide → ERREUR (sécurité)
+            console.error(`Token invalide: ${token}`);
+            setError(`Token d'accès invalide ou expiré: ${token}`);
+            setConfig(DEFAULT_CONFIG); // Fallback pour éviter crash
+          } else {
+            // Pas de token → Configuration par défaut (normal)
+            console.warn('Aucun token fourni, utilisation de la configuration par défaut');
+            setConfig(DEFAULT_CONFIG);
+          }
         }
       } catch (err) {
         console.error('Erreur lors du chargement de la configuration:', err);
@@ -83,16 +99,21 @@ export const useWidgetConfig = (token?: string) => {
     fetchConfig();
   }, []);
 
-  // 🔄 Actualisation automatique sur focus de la fenêtre
+  // 🔄 Actualisation automatique sur focus de la fenêtre (SEULEMENT pour admin, pas pour tokens)
   useEffect(() => {
     const handleFocus = () => {
-      console.log('🔄 Focus détecté, actualisation de la configuration...');
-      refetchConfig();
+      // SÉCURITÉ: Ne pas actualiser si on a un token (évite de reset les erreurs d'accès)
+      if (!token) {
+        console.log('🔄 Focus détecté, actualisation de la configuration admin...');
+        refetchConfig();
+      } else {
+        console.log('🔄 Focus détecté mais token présent, pas d\'actualisation (sécurité)');
+      }
     };
 
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
-  }, []);
+  }, [token]);
 
   // 🎯 Écoute de l'événement personnalisé pour actualisation immédiate après sauvegarde admin
   useEffect(() => {
@@ -126,15 +147,11 @@ export const useWidgetConfig = (token?: string) => {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // ⏰ Polling périodique toutes les 30 secondes
-  useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('⏰ Polling automatique de la configuration...');
-      refetchConfig();
-    }, 30000); // 30 secondes
-
-    return () => clearInterval(interval);
-  }, []);
+  // ⏰ SUPPRIMÉ: Polling périodique (causait logs répétitifs)
+  // La synchronisation se fait maintenant uniquement via:
+  // 1. Événements admin (widgetConfigUpdated)
+  // 2. Messages cross-frame
+  // 3. Focus window (admin seulement)
 
   // Fonction pour recharger la configuration
   const refetchConfig = () => {
@@ -151,6 +168,13 @@ export const useWidgetConfig = (token?: string) => {
         }
 
         const response = await fetch(url);
+        
+        // 🚨 CORRECTION CRITIQUE: Vérifier le statut HTTP avant de parser JSON
+        if (!response.ok) {
+          console.error(`❌ Erreur HTTP ${response.status} pour l'URL: ${url}`);
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
         const data = await response.json();
 
         if (data.success && data.data) {
@@ -167,6 +191,18 @@ export const useWidgetConfig = (token?: string) => {
             language: data.data.language || DEFAULT_CONFIG.language,
             apiUrl: data.data.apiUrl || DEFAULT_CONFIG.apiUrl
           });
+        } else {
+          // SÉCURITÉ CRITIQUE: Distinguer token invalide vs pas de token (MÊME LOGIQUE que useEffect initial)
+          if (token) {
+            // Token fourni mais invalide → ERREUR (sécurité)
+            console.error(`Token invalide lors du refresh: ${token}`);
+            setError(`Token d'accès invalide ou expiré: ${token}`);
+            setConfig(DEFAULT_CONFIG); // Fallback pour éviter crash
+          } else {
+            // Pas de token → Configuration par défaut (normal)
+            console.warn('Aucun token fourni lors du refresh, utilisation de la configuration par défaut');
+            setConfig(DEFAULT_CONFIG);
+          }
         }
       } catch (err) {
         console.error('Erreur lors du rechargement de la configuration:', err);
