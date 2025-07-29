@@ -5,11 +5,11 @@
 import axios from 'axios';
 
 // Configuration de l'API
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 // Instance axios configurée
 const api = axios.create({
-  baseURL: `${API_BASE_URL}/api`,
+  baseURL: API_BASE_URL,
   timeout: 30000, // 30 secondes pour les appels OpenAI
   headers: {
     'Content-Type': 'application/json',
@@ -21,6 +21,7 @@ export interface ChatRequest {
   message: string;
   sessionId?: string;
   chatbot?: 'studybot' | 'bibliobot';
+  token?: string; // ✅ Token pour validation backend
 }
 
 export interface ChatResponse {

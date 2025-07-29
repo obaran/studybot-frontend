@@ -541,10 +541,14 @@ const ChatOnly: React.FC = () => {
 
     try {
       // Préparer la requête API avec session persistante
+      const urlParams = new URLSearchParams(window.location.search);
+      const currentToken = urlParams.get('token');
+      
       const chatRequest: ChatRequest = {
         message: messageText,
         chatbot: 'studybot', // ou 'bibliobot' selon le contexte
-        sessionId: sessionId || undefined // Utiliser la session persistante
+        sessionId: sessionId || undefined, // Utiliser la session persistante
+        token: currentToken || undefined // ✅ Inclure le token depuis l'URL pour validation backend
       };
 
       // Mettre à jour l'activité de session
@@ -1688,8 +1692,8 @@ const ChatOnly: React.FC = () => {
                       </>
                     );
                   } else {
-                    // Sinon, utiliser le footerText comme texte avant + nom de domaine comme texte du lien
-                    const linkText = footerLink.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'emlyon business school';
+                    // Sinon, utiliser le footerText comme texte avant + texte fixe pour le lien
+                    const linkText = 'emlyon business school'; // ✅ Texte fixe au lieu du domaine
                     return (
                       <>
                         {footerText}{' '}
