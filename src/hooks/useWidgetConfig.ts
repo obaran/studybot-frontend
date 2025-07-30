@@ -10,6 +10,7 @@ interface WidgetConfig {
   welcomeMessage: string;
   footerText: string;
   footerLink?: string;
+  footerLinkText?: string;
   primaryColor: string;
   secondaryColor: string;
   botAvatarUrl?: string;

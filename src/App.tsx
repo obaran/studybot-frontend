@@ -1698,8 +1698,8 @@ const App: React.FC = () => {
                       </>
                     );
                   } else {
-                    // Sinon, utiliser le footerText comme texte avant + nom de domaine comme texte du lien
-                    const linkText = footerLink.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] || 'emlyon business school';
+                    // Utiliser footerLinkText de la configuration ou fallback
+                    const linkText = widgetConfig.footerLinkText || 'emlyon business school';
                     return (
                       <>
                         {footerText}{' '}

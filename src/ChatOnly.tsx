@@ -292,30 +292,38 @@ const ChatOnly: React.FC = () => {
   // 📜 Auto-scroll vers le bas quand messages changent
   const scrollToBottom = useCallback((smooth: boolean = true) => {
     if (messagesEndRef.current) {
+      // Scroll immédiat pour s'assurer que l'élément est visible
       messagesEndRef.current.scrollIntoView({
         behavior: smooth ? 'smooth' : 'auto',
-        block: 'end'
+        block: 'end',
+        inline: 'nearest'
       });
       
-      // Double appel pour s'assurer du scroll même avec du contenu dynamique
+      // Double appel avec délai plus long pour s'assurer du scroll même avec du contenu dynamique
       if (smooth) {
         setTimeout(() => {
           messagesEndRef.current?.scrollIntoView({
             behavior: 'smooth',
-            block: 'end'
+            block: 'end',
+            inline: 'nearest'
           });
-        }, 100);
+        }, 200); // Délai augmenté pour les animations
       }
     }
   }, []);
 
   // 📜 Effect pour auto-scroll sur nouveaux messages (sauf typewriter en cours)
   useEffect(() => {
-    if (isOpen && !typewritingMessageId) {
-      // Scroll uniquement si pas d'animation typewriter en cours
+    if (isOpen && (messages.length > 0 || showTyping)) {
+      // Délai pour laisser le temps aux animations de se terminer
       setTimeout(() => {
         scrollToBottom();
-      }, 50);
+      }, 150);
+      
+      // Scroll supplémentaire après un délai plus long pour s'assurer de la visibilité
+      setTimeout(() => {
+        scrollToBottom(true);
+      }, 500);
     }
   }, [messages, showTyping, isOpen, scrollToBottom, typewritingMessageId]);
 
@@ -1692,8 +1700,8 @@ const ChatOnly: React.FC = () => {
                       </>
                     );
                   } else {
-                    // Sinon, utiliser le footerText comme texte avant + texte fixe pour le lien
-                    const linkText = 'emlyon business school'; // ✅ Texte fixe au lieu du domaine
+                    // Utiliser footerLinkText de la configuration ou fallback
+                    const linkText = widgetConfig.footerLinkText || 'emlyon business school';
                     return (
                       <>
                         {footerText}{' '}
