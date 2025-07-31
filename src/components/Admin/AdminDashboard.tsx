@@ -178,6 +178,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false); // État du calendrier popup
   const [showAddUserModal, setShowAddUserModal] = React.useState(false); // Modal d'ajout d'utilisateur
   const [showPermissionsModal, setShowPermissionsModal] = React.useState(false); // Modal de permissions
+  const [showEmbedCustomizationModal, setShowEmbedCustomizationModal] = React.useState(false); // Modal de personnalisation embed
   const [selectedUser, setSelectedUser] = React.useState<any>(null);
 
   // États pour les notes de version
@@ -242,6 +243,63 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
       setHasConfigChanges(false);
     }
   }, [config, configLoading]);
+
+  // Code d'intégration original (production) - généré après chargement de la config
+  const originalEmbedCode = React.useMemo(() => {
+    if (!config) return '';
+    return `<!-- StudyBot emlyon - Code d'intégration complet -->
+<div id="studybot-container"></div>
+<script>
+(function() {
+  // Configuration StudyBot
+  window.StudyBotConfig = {
+    apiUrl: '${window.location.origin}',
+    token: '${config.token || 'widget-87bc9eb1-mdoo8ef2'}',
+    theme: {
+      primaryColor: '${config.primaryColor || '#e2001a'}',
+      secondaryColor: '${config.secondaryColor || '#b50015'}',
+      position: 'bottom-right',
+      language: 'fr'
+    },
+    welcome: {
+      message: '${config.welcomeMessage || 'Bonjour ! Je suis votre assistant virtuel emlyon. 🚨 Veuillez ne pas transmettre d\'informations personnelles. 🔔 Studybot peut faire des erreurs. Comment puis-je vous aider ?'}',
+      delay: 2000
+    },
+    footer: {
+      text: '${config.footerText || 'Powered by'}',
+      linkText: '${config.footerLinkText || 'emlyon business school'}',
+      link: '${config.footerLink || 'https://em-lyon.com'}'
+    }
+  };
+
+  // Chargement du widget
+  var script = document.createElement('script');
+  script.src = '${window.location.origin.replace(':5173', ':3001')}/widget.js';
+  script.async = true;
+  document.head.appendChild(script);
+})();
+</script>
+<!-- Fin StudyBot -->`;
+  }, [config]);
+
+  const [customEmbedCode, setCustomEmbedCode] = React.useState('');
+  const [generatedEmbedCode, setGeneratedEmbedCode] = React.useState(''); // Code généré à afficher après fermeture modal
+
+  // Mise à jour du code personnalisé quand le code original change
+  React.useEffect(() => {
+    if (originalEmbedCode && !customEmbedCode) {
+      setCustomEmbedCode(originalEmbedCode);
+    }
+  }, [originalEmbedCode, customEmbedCode]);
+
+  // Fonction pour générer le code personnalisé
+  const handleGenerateCustomCode = () => {
+    setGeneratedEmbedCode(customEmbedCode);
+    setShowEmbedCustomizationModal(false);
+    // Notification de succès
+    console.log('✅ Code embed personnalisé généré avec succès!');
+  };
+
   const conversationsCount = conversationsCountData?.total || 0;
 
   // Fonction de filtrage unifiée pour éviter la duplication et assurer la cohérence
@@ -3510,7 +3568,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     maxHeight: '200px',
                     overflowY: 'auto'
                   }}>
-                    {config ? `<!-- StudyBot emlyon - Code d'intégration complet -->
+                    {generatedEmbedCode ? generatedEmbedCode : (config ? `<!-- StudyBot emlyon - Code d'intégration complet -->
 <div id="studybot-container"></div>
 <script>
 (function() {
@@ -3542,7 +3600,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
   document.head.appendChild(script);
 })();
 </script>
-<!-- Fin StudyBot -->` : 'Chargement de la configuration...'}
+<!-- Fin StudyBot -->` : 'Chargement de la configuration...')}
                   </div>
 
                   <div style={{ display: 'flex', gap: '12px' }}>
@@ -3612,6 +3670,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     <motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
+                      onClick={() => {
+                        console.log('🎨 Ouverture modal personnalisation embed...');
+                        setShowEmbedCustomizationModal(true);
+                      }}
                       style={{
                         padding: '12px 24px',
                         background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
@@ -3882,6 +3944,170 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     </motion.button>
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {/* Modal pour la personnalisation embed */}
+        {showEmbedCustomizationModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              zIndex: 1000,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '20px'
+            }}
+            onClick={() => setShowEmbedCustomizationModal(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              style={{
+                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
+                borderRadius: '20px',
+                padding: '40px',
+                maxWidth: '95vw',
+                maxHeight: '95vh',
+                width: '1200px',
+                height: '80vh',
+                boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+                overflow: 'hidden',
+                display: 'flex',
+                flexDirection: 'column'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <div style={{ textAlign: 'center', flex: 1 }}>
+                  <h2 style={{ color: '#e2001a', margin: 0, fontSize: '28px', fontWeight: '800' }}>
+                    🎨 Personnalisation du Widget
+                  </h2>
+                  <p style={{ color: '#64748b', fontSize: '16px', margin: '10px 0 0 0' }}>
+                    Personnalisez votre chatbot sans code technique
+                  </p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={() => setShowEmbedCustomizationModal(false)}
+                  style={{
+                    width: '40px',
+                    height: '40px',
+                    border: 'none',
+                    borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px'
+                  }}
+                >
+                  ✕
+                </motion.button>
+              </div>
+
+              {/* Content - Code technique personnalisable */}
+              <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ background: '#f8fafc', padding: '20px', borderRadius: '12px', border: '2px solid #e2e8f0', marginBottom: '20px' }}>
+                  <h3 style={{ color: '#1e293b', margin: '0 0 15px 0', display: 'flex', alignItems: 'center' }}>
+                    ⚙️ <span style={{ marginLeft: '8px' }}>Code Embed Personnalisable</span>
+                  </h3>
+                  <p style={{ color: '#64748b', fontSize: '14px', margin: '0 0 20px 0' }}>
+                    Modifiez les valeurs ci-dessous pour personnaliser votre widget. Les champs surlignés sont remplaçables.
+                  </p>
+                </div>
+
+                <div style={{ flex: 1, overflow: 'auto', background: '#1e293b', borderRadius: '12px', padding: '20px' }}>
+                  <textarea 
+                    value={customEmbedCode}
+                    onChange={(e) => setCustomEmbedCode(e.target.value)}
+                    style={{ 
+                      width: '100%',
+                      height: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      outline: 'none',
+                      resize: 'none',
+                      color: '#e2e8f0', 
+                      fontFamily: 'Monaco, Consolas, "Courier New", monospace', 
+                      fontSize: '13px', 
+                      lineHeight: '1.6',
+                      padding: 0,
+                      margin: 0,
+                      whiteSpace: 'pre-wrap',
+                      wordWrap: 'break-word',
+                      boxSizing: 'border-box'
+                    }}
+                    spellCheck={false}
+                  />
+                </div>
+
+                <div style={{ background: '#f8fafc', padding: '15px', borderRadius: '12px', border: '2px solid #e2e8f0', marginTop: '20px' }}>
+                  <h4 style={{ color: '#1e293b', margin: '0 0 10px 0', fontSize: '16px' }}>🔧 Variables Personnalisables :</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '12px' }}>
+                    <div><span style={{ background: '#fbbf24', color: '#1e293b', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>TOKEN</span> - Authentification</div>
+                    <div><span style={{ background: '#34d399', color: '#1e293b', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>API_URL</span> - URL du serveur</div>
+                    <div><span style={{ background: '#f87171', color: '#1e293b', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>POSITION</span> - Emplacement widget</div>
+                    <div><span style={{ background: '#a78bfa', color: '#1e293b', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>COULEUR</span> - Couleur principale</div>
+                    <div><span style={{ background: '#60a5fa', color: '#1e293b', padding: '1px 3px', borderRadius: '3px', fontWeight: 'bold' }}>MESSAGE</span> - Texte d'accueil</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Boutons d'action */}
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', paddingTop: '20px', borderTop: '2px solid #e2e8f0', marginTop: '20px' }}>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleGenerateCustomCode}
+                  style={{
+                    padding: '15px 30px',
+                    background: 'linear-gradient(135deg, #e2001a 0%, #b50015 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '16px',
+                    boxShadow: '0 4px 12px rgba(226,0,26,0.3)'
+                  }}
+                >
+                  ✨ Générer le Code Personnalisé
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    setCustomEmbedCode(originalEmbedCode);
+                  }}
+                  style={{
+                    padding: '15px 30px',
+                    background: '#f8fafc',
+                    color: '#475569',
+                    border: '2px solid #e2e8f0',
+                    borderRadius: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '16px'
+                  }}
+                >
+                  🔄 Réinitialiser
+                </motion.button>
               </div>
             </motion.div>
           </motion.div>
