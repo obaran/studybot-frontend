@@ -284,6 +284,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
 
   const [customEmbedCode, setCustomEmbedCode] = React.useState('');
   const [generatedEmbedCode, setGeneratedEmbedCode] = React.useState(''); // Code généré à afficher après fermeture modal
+  
+  // États pour la gestion des logos
+  const [botLogo, setBotLogo] = React.useState<string>(config?.botAvatarUrl || 'https://aksflowisestorageprod.blob.core.windows.net/images/chatbot3avatr.png'); // Logo bot actuel
+  const [userLogo, setUserLogo] = React.useState<string>(config?.userAvatarUrl || 'https://aksflowisestorageprod.blob.core.windows.net/images/eleves2.png'); // Logo user actuel
+  const [botLogoFile, setBotLogoFile] = React.useState<File | null>(null); // Fichier logo bot uploadé
+  const [userLogoFile, setUserLogoFile] = React.useState<File | null>(null); // Fichier logo user uploadé
+  const [botLogoPreview, setBotLogoPreview] = React.useState<string>(''); // Preview du logo bot
+  const [userLogoPreview, setUserLogoPreview] = React.useState<string>(''); // Preview du logo user
+  
+  // Références pour les inputs file
+  const botLogoInputRef = React.useRef<HTMLInputElement>(null);
+  const userLogoInputRef = React.useRef<HTMLInputElement>(null);
+  
+  // Logos par défaut de production
+  const DEFAULT_BOT_LOGO = 'https://aksflowisestorageprod.blob.core.windows.net/images/chatbot3avatr.png';
+  const DEFAULT_USER_LOGO = 'https://aksflowisestorageprod.blob.core.windows.net/images/eleves2.png';
 
   // Mise à jour du code personnalisé quand le code original change
   React.useEffect(() => {
@@ -292,12 +308,135 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
     }
   }, [originalEmbedCode, customEmbedCode]);
 
+  // Synchronisation des logos avec la configuration
+  React.useEffect(() => {
+    if (config) {
+      setBotLogo(config.botAvatarUrl || DEFAULT_BOT_LOGO);
+      setUserLogo(config.userAvatarUrl || DEFAULT_USER_LOGO);
+    }
+  }, [config]);
+
   // Fonction pour générer le code personnalisé
   const handleGenerateCustomCode = () => {
+    console.log('Génération du code personnalisé...');
     setGeneratedEmbedCode(customEmbedCode);
     setShowEmbedCustomizationModal(false);
-    // Notification de succès
-    console.log('✅ Code embed personnalisé généré avec succès!');
+    console.log('Code généré et modal fermée');
+  };
+
+  // Fonctions de gestion des logos avec API backend
+  const handleBotLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setBotLogoFile(file);
+      
+      try {
+        // Créer FormData pour l'upload
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'bot');
+        
+        // Appeler l'API d'upload backend
+        const response = await fetch('/api/admin/configuration/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const publicUrl = result.data.url;
+          
+          // Mettre à jour l'état local avec l'URL publique
+          setBotLogo(publicUrl);
+          setBotLogoPreview(publicUrl);
+          
+          // UTILISER la même logique que le bouton "Sauvegarder" qui fonctionne parfaitement
+          await updateConfig({
+            botAvatarUrl: publicUrl
+          });
+          
+          // Déclencher la synchronisation des widgets (comme le bouton Sauvegarder)
+          window.dispatchEvent(new CustomEvent('widgetConfigUpdated'));
+          
+          console.log('✅ Logo bot uploadé avec succès:', publicUrl);
+        } else {
+          console.error('❌ Erreur upload logo bot:', await response.text());
+        }
+      } catch (error) {
+        console.error('❌ Erreur upload logo bot:', error);
+      }
+    }
+  };
+
+  const handleUserLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setUserLogoFile(file);
+      
+      try {
+        // Créer FormData pour l'upload
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('type', 'user');
+        
+        // Appeler l'API d'upload backend
+        const response = await fetch('/api/admin/configuration/upload', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          const publicUrl = result.data.url;
+          
+          // Mettre à jour l'état local avec l'URL publique
+          setUserLogo(publicUrl);
+          setUserLogoPreview(publicUrl);
+          
+          // UTILISER la même logique que le bouton "Sauvegarder" qui fonctionne parfaitement
+          await updateConfig({
+            userAvatarUrl: publicUrl
+          });
+          
+          // Déclencher la synchronisation des widgets (comme le bouton Sauvegarder)
+          window.dispatchEvent(new CustomEvent('widgetConfigUpdated'));
+          
+          console.log('✅ Logo user uploadé avec succès:', publicUrl);
+        } else {
+          console.error('❌ Erreur upload logo user:', await response.text());
+        }
+      } catch (error) {
+        console.error('❌ Erreur upload logo user:', error);
+      }
+    }
+  };
+
+  const resetBotLogo = async () => {
+    // NOUVELLE IMAGE DE RÉFÉRENCE : Image actuelle du widget principal du dashboard
+    const defaultBotAvatarUrl = 'https://aksflowisestorageprod.blob.core.windows.net/images/chatbot3avatr.png';
+    
+    // UTILISER la même logique que le bouton "Sauvegarder" qui fonctionne parfaitement
+    await updateConfig({
+      botAvatarUrl: defaultBotAvatarUrl
+    });
+    
+    // Déclencher la synchronisation des widgets (comme le bouton Sauvegarder)
+    window.dispatchEvent(new CustomEvent('widgetConfigUpdated'));
+    console.log('✅ Logo bot reseté avec succès');
+  };
+
+  const resetUserLogo = async () => {
+    // NOUVELLE IMAGE DE RÉFÉRENCE : Image actuelle de l'utilisateur du widget principal du dashboard
+    const defaultUserAvatarUrl = 'https://aksflowisestorageprod.blob.core.windows.net/images/eleves2.png';
+    
+    // UTILISER la même logique que le bouton "Sauvegarder" qui fonctionne parfaitement
+    await updateConfig({
+      userAvatarUrl: defaultUserAvatarUrl
+    });
+    
+    // Déclencher la synchronisation des widgets (comme le bouton Sauvegarder)
+    window.dispatchEvent(new CustomEvent('widgetConfigUpdated'));
+    console.log('✅ Logo user reseté avec succès');
   };
 
   const conversationsCount = conversationsCountData?.total || 0;
@@ -3114,7 +3253,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                 gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                 gap: '24px'
               }}>
-                {/* Logo Bot */}
+                {/* Section Upload/Reset Bot Logo - Interface de contrôle uniquement */}
                 <div style={{
                   background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
                   borderRadius: '12px',
@@ -3128,44 +3267,78 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     color: '#1e293b',
                     margin: '0 0 16px 0'
                   }}>
-                    Logo Bot
+                    🤖 Gestion Logo Bot
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#3b82f6',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: '500',
+                      marginLeft: '8px'
+                    }}>
+                      CONTRÔLES
+                    </span>
                   </h4>
                   
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    background: 'white',
-                    borderRadius: '50%',
-                    border: '2px dashed #e2e8f0',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    color: '#e2001a'
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    margin: '0 0 20px 0',
+                    lineHeight: '1.5'
                   }}>
-                    🤖
-                  </div>
+                    Utilisez les boutons ci-dessous pour modifier le logo du bot.
+                    La prévisualisation s'affiche dans le widget principal ci-dessus.
+                  </p>
 
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{
-                      padding: '12px 20px',
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    📁 Choisir un fichier
-                  </motion.button>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleBotLogoUpload}
+                      style={{ display: 'none' }}
+                      id="bot-logo-upload"
+                      ref={botLogoInputRef}
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => document.getElementById('bot-logo-upload')?.click()}
+                      style={{
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📁 Choisir Nouveau Logo
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={resetBotLogo}
+                      style={{
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ♾️ Reset Logo Par Défaut
+                    </motion.button>
+                  </div>
                 </div>
 
-                {/* Logo User */}
+                {/* Section Upload/Reset User Logo - Interface de contrôle uniquement */}
                 <div style={{
                   background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
                   borderRadius: '12px',
@@ -3179,41 +3352,75 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
                     color: '#1e293b',
                     margin: '0 0 16px 0'
                   }}>
-                    Logo User
+                    👤 Gestion Avatar Utilisateur
+                    <span style={{
+                      fontSize: '12px',
+                      background: '#3b82f6',
+                      color: 'white',
+                      padding: '2px 8px',
+                      borderRadius: '4px',
+                      fontWeight: '500',
+                      marginLeft: '8px'
+                    }}>
+                      CONTRÔLES
+                    </span>
                   </h4>
                   
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    background: 'white',
-                    borderRadius: '50%',
-                    border: '2px dashed #e2e8f0',
-                    margin: '0 auto 16px auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '24px',
-                    color: '#e2001a'
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    margin: '0 0 20px 0',
+                    lineHeight: '1.5'
                   }}>
-                    👤
-                  </div>
+                    Utilisez les boutons ci-dessous pour modifier l'avatar utilisateur.
+                    La prévisualisation s'affiche dans le widget principal ci-dessus.
+                  </p>
 
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    style={{
-                      padding: '12px 20px',
-                      background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    📁 Choisir un fichier
-                  </motion.button>
+                  <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleUserLogoUpload}
+                      style={{ display: 'none' }}
+                      id="user-logo-upload"
+                      ref={userLogoInputRef}
+                    />
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => document.getElementById('user-logo-upload')?.click()}
+                      style={{
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      📁 Choisir Nouvel Avatar
+                    </motion.button>
+                    
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={resetUserLogo}
+                      style={{
+                        padding: '12px 20px',
+                        background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ♾️ Reset Avatar Par Défaut
+                    </motion.button>
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -3315,16 +3522,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
               </div>
             </motion.div>
 
+
+
             {/* Génération de liens et intégrations - EN BAS */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.3 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
               style={{
-                background: 'linear-gradient(135deg, #ffffff 0%, #fefefe 100%)',
-                borderRadius: '16px',
+                background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                borderRadius: '20px',
                 padding: '32px',
-                boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08), 0 2px 8px rgba(0, 0, 0, 0.04)',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
                 border: '1px solid rgba(255, 255, 255, 0.2)'
               }}
             >
@@ -5095,6 +5304,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ className }) => {
             </motion.div>
           </motion.div>
         )}
+
+
       </div>
     </div>
   );

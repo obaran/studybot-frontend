@@ -1,0 +1,229 @@
+/**
+ * 🎨 ChatOnly.css - Styles dédiés pour le widget StudyBot
+ * 
+ * Ce fichier contient tous les styles spécifiques au widget ChatOnly
+ * pour éviter les injections globales et les doublons lors d'intégrations multiples.
+ */
+
+/* ========================================
+   SCROLLBAR PERSONNALISÉE
+   ======================================== */
+
+/* Scrollbar pour le conteneur de messages du widget */
+.studybot-chat-container ::-webkit-scrollbar {
+  width: 6px;
+}
+
+.studybot-chat-container ::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.studybot-chat-container ::-webkit-scrollbar-thumb {
+  background: #d4a94e;
+  border-radius: 3px;
+  opacity: 0.7;
+}
+
+.studybot-chat-container ::-webkit-scrollbar-thumb:hover {
+  background: #d4a94e;
+  opacity: 1;
+}
+
+/* ========================================
+   ANIMATIONS PERSONNALISÉES
+   ======================================== */
+
+/* Animation de pulsation pour le bouton */
+@keyframes studybot-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.8;
+  }
+}
+
+/* Animation de rebond pour les notifications */
+@keyframes studybot-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ========================================
+   CLASSES UTILITAIRES
+   ======================================== */
+
+/* Classe pour le bouton principal */
+.studybot-button {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Classe pour le tooltip */
+.studybot-tooltip {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Classe pour les textes en Poppins Medium */
+.poppins-medium {
+  font-weight: 500;
+}
+
+/* Classe pour les textes en Poppins Bold */
+.poppins-bold {
+  font-weight: 700;
+}
+
+/* ========================================
+   RESPONSIVE - OPTIMISATION MOBILE
+   ======================================== */
+
+/* Styles de base pour tous les écrans */
+.studybot-widget-container {
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Tablettes et petits écrans (< 768px) */
+@media (max-width: 768px) {
+  /* Ajustements pour le bouton flottant */
+  .studybot-button {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  
+  /* Ajustements pour le tooltip */
+  .studybot-tooltip {
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+    max-width: 180px !important;
+  }
+  
+  /* Réduction des polices dans les messages */
+  .studybot-chat-container {
+    font-size: 14px !important;
+  }
+  
+  /* Ajustement des tailles d'avatars */
+  .studybot-chat-container img[alt="Bot"],
+  .studybot-chat-container img[alt="Studybot"] {
+    width: 28px !important;
+    height: 28px !important;
+  }
+  
+  /* Réduction du padding dans les messages */
+  .chat-messages > div {
+    padding: 10px 14px !important;
+  }
+  
+  /* Header du widget plus compact */
+  .studybot-widget .studybot-chat > div:first-child {
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+  }
+}
+
+/* Smartphones (< 480px) */
+@media (max-width: 480px) {
+  /* Bouton encore plus compact */
+  .studybot-button {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  /* Tooltip plus petit */
+  .studybot-tooltip {
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    max-width: 150px !important;
+  }
+  
+  /* Messages encore plus compacts */
+  .studybot-chat-container {
+    font-size: 13px !important;
+    padding: 12px 16px !important;
+  }
+  
+  /* Avatars plus petits */
+  .studybot-chat-container img[alt="Bot"],
+  .studybot-chat-container img[alt="Studybot"] {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  
+  /* Messages avec moins de padding */
+  .chat-messages > div {
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+  }
+  
+  /* Header encore plus compact */
+  .studybot-widget .studybot-chat > div:first-child {
+    padding: 10px 14px !important;
+    font-size: 15px !important;
+  }
+  
+  /* Input zone plus compacte */
+  .studybot-chat-container textarea {
+    font-size: 14px !important;
+    padding: 10px 12px !important;
+  }
+  
+  /* Boutons d'action plus petits */
+  .studybot-chat-container button {
+    font-size: 13px !important;
+    padding: 8px 12px !important;
+  }
+}
+
+/* Très petits écrans (< 360px) */
+@media (max-width: 360px) {
+  /* Optimisation maximale pour petits smartphones */
+  .studybot-button {
+    width: 36px !important;
+    height: 36px !important;
+  }
+  
+  .studybot-chat-container {
+    font-size: 12px !important;
+    padding: 10px 12px !important;
+  }
+  
+  .chat-messages > div {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+  
+  /* Avatars minimaux */
+  .studybot-chat-container img[alt="Bot"],
+  .studybot-chat-container img[alt="Studybot"] {
+    width: 20px !important;
+    height: 20px !important;
+  }
+}
+
+/* ========================================
+   ACCESSIBILITÉ
+   ======================================== */
+
+/* Focus visible pour l'accessibilité clavier */
+.studybot-button:focus-visible {
+  outline: 2px solid #d4a94e;
+  outline-offset: 2px;
+}
+
+/* Réduction des animations pour les utilisateurs qui préfèrent moins de mouvement */
+@media (prefers-reduced-motion: reduce) {
+  .studybot-button,
+  .studybot-tooltip,
+  .studybot-chat-container * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

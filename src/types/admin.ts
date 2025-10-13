@@ -162,7 +162,10 @@ export interface BotConfiguration {
 export interface UpdateConfigurationRequest {
   welcomeMessage?: string;
   footerText?: string;
+  footerLinkText?: string;
   footerLink?: string;
+  botAvatarUrl?: string;
+  userAvatarUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;
 }

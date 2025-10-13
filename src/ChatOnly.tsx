@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
+import './ChatOnly.css'; // ✅ Import des styles dédiés au widget
 import StudyBotAPI, { type ChatRequest } from './services/api';
 import TypewriterText from './components/TypewriterText';
 // import AdminDashboard from './components/admin/AdminDashboard'; // Retiré pour ChatOnly
@@ -84,7 +85,11 @@ const buttonVariants = {
 };
 
 // 💭 Composant Typing Indicator animé
-const TypingIndicator: React.FC = () => {
+interface TypingIndicatorProps {
+  widgetConfig: any;
+}
+
+const TypingIndicator: React.FC<TypingIndicatorProps> = ({ widgetConfig }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -120,7 +125,7 @@ const TypingIndicator: React.FC = () => {
         overflow: 'hidden'
       }}>
         <img
-          src={EMLYON_ASSETS.botAvatar}
+          src={widgetConfig.botAvatarUrl || EMLYON_ASSETS.botAvatar}
           alt="Bot"
           style={{
             width: '100%',
@@ -821,26 +826,30 @@ const ChatOnly: React.FC = () => {
     document.addEventListener('mouseup', handleMouseUp);
   }, [widgetSize]);
 
-  // 📝 État de l'administration (reste inchangé)
-  const [showAdmin, setShowAdmin] = useState<boolean>(false);
-
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f8f9fa',
-      padding: '20px',
-      fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" // ✅ Poppins en priorité
-    }}>
-      
+    <div
+      className="studybot-widget-container" // ✅ Classe pour styles CSS
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'transparent',
+        pointerEvents: 'none',
+        fontFamily: "'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+        zIndex: 2147480000
+      }}
+    >
       {/* Pas de Dashboard - Chat seulement */}
 
       {/* Widget StudyBot - Phase 2 avec Framer Motion */}
-      <div style={{
-        position: 'fixed',
-        left: `${buttonPosition.x}px`,
-        top: `${buttonPosition.y}px`,
-        zIndex: 999999
-      }}>
+      <div
+        style={{
+          position: 'fixed',
+          left: `${buttonPosition.x}px`,
+          top: `${buttonPosition.y}px`,
+          zIndex: 999999,
+          pointerEvents: 'auto'
+        }}
+      >
         {/* Bouton widget emlyon avec animations Framer Motion */}
                  <motion.button
            variants={buttonVariants}
@@ -1233,7 +1242,7 @@ const ChatOnly: React.FC = () => {
                     }}
                   >
                     <img
-                      src={EMLYON_ASSETS.titleAvatar}
+                      src={widgetConfig.botAvatarUrl || EMLYON_ASSETS.titleAvatar}
                       alt="Studybot"
                       style={{
                         width: '100%',
@@ -1322,10 +1331,10 @@ const ChatOnly: React.FC = () => {
                 </div>
               </motion.div>
 
-              {/* Corps du chat avec auto-scroll */}
-              <div 
+              {/* Zone de messages scrollable */}
+              <div
                 ref={chatContainerRef}
-                className="chat-container"
+                className="studybot-chat-container" // ✅ Classe pour scrollbar personnalisée
                 style={{
                   flex: 1,
                   padding: '16px 20px',
@@ -1388,7 +1397,7 @@ const ChatOnly: React.FC = () => {
                           overflow: 'hidden'
                         }}>
                           <img
-                            src={EMLYON_ASSETS.botAvatar}
+                            src={widgetConfig.botAvatarUrl || EMLYON_ASSETS.botAvatar}
                             alt="Bot"
                             style={{
                               width: '100%',
@@ -1397,10 +1406,13 @@ const ChatOnly: React.FC = () => {
                             }}
                             onError={(e) => {
                               e.currentTarget.style.display = 'none';
-                              e.currentTarget.parentElement!.innerHTML = '🤖';
-                              e.currentTarget.parentElement!.style.color = 'white';
-                              e.currentTarget.parentElement!.style.fontSize = '16px';
-                              e.currentTarget.parentElement!.style.fontWeight = '600';
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                parent.innerHTML = '🤖';
+                                parent.style.color = 'white';
+                                parent.style.fontSize = '16px';
+                                parent.style.fontWeight = '600';
+                              }
                             }}
                           />
                         </div>
@@ -1457,7 +1469,7 @@ const ChatOnly: React.FC = () => {
                           overflow: 'hidden'
                         }}>
                           <img
-                            src={EMLYON_ASSETS.userAvatar}
+                            src={widgetConfig.userAvatarUrl || EMLYON_ASSETS.userAvatar}
                             alt="User"
                             style={{
                               width: '100%',
@@ -1579,7 +1591,7 @@ const ChatOnly: React.FC = () => {
 
                 {/* Typing indicator animé */}
                 <AnimatePresence>
-                  {showTyping && <TypingIndicator />}
+                  {showTyping && <TypingIndicator widgetConfig={widgetConfig} />}
                 </AnimatePresence>
 
                 {/* 📜 Élément invisible pour l'auto-scroll */}
@@ -1934,26 +1946,7 @@ const ChatOnly: React.FC = () => {
         </AnimatePresence>
       </div>
 
-      {/* CSS pour les animations natives */}
-      <style>{`
-        /* Scrollbar personnalisée */
-        ::-webkit-scrollbar {
-          width: 6px;
-        }
-        ::-webkit-scrollbar-track {
-          background: #f1f1f1;
-          border-radius: 3px;
-        }
-        ::-webkit-scrollbar-thumb {
-          background: #d4a94e;
-          border-radius: 3px;
-          opacity: 0.7;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-          background: #d4a94e;
-          opacity: 1;
-        }
-      `}</style>
+      {/* ✅ Styles déplacés vers ChatOnly.css pour éviter injections globales */}
     </div>
   );
 };

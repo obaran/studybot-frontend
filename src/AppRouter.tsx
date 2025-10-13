@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import App from './App';
+import AdminApp from './AdminApp';
 import ChatOnly from './ChatOnly';
 import ChatPage from './pages/ChatPage';
 import EmbedPage from './pages/EmbedPage';
@@ -9,8 +9,8 @@ const AppRouter: React.FC = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Route par défaut - Dashboard Admin avec Widget */}
-        <Route path="/" element={<App />} />
+        {/* Route par défaut - Dashboard Admin avec Widget Synchronisé */}
+        <Route path="/" element={<AdminApp />} />
         
         {/* Route ChatOnly - Bot identique sans Dashboard */}
         <Route path="/bot" element={<ChatOnly />} />

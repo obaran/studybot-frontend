@@ -293,6 +293,8 @@ export function useConfiguration() {
     footerText?: string;
     footerLinkText?: string;
     footerLink?: string;
+    botAvatarUrl?: string;
+    userAvatarUrl?: string;
     primaryColor?: string;
     secondaryColor?: string;
   }) => {
